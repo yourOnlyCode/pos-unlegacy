@@ -1,4 +1,5 @@
 import express from 'express';
+import { requireAuth, requireBusinessMatch } from '../middleware/authMiddleware';
 import { getTenantByPhone, getAllTenants, addTenant, updateTenant } from '../services/tenantService';
 import { assignPhoneNumber, releasePhoneNumber, getPurchasedNumbers, getNumberByBusiness } from '../services/phonePoolService';
 import { calculateCosts } from '../services/costTracker';
@@ -133,7 +134,7 @@ router.put('/tenants/:phone', (req, res) => {
 });
 
 // Get orders for a specific business
-router.get('/business/:businessId/orders', (req, res) => {
+router.get('/business/:businessId/orders', requireAuth, requireBusinessMatch, (req, res) => {
   try {
     const { businessId } = req.params;
     
@@ -169,7 +170,7 @@ router.get('/business/:businessId/orders', (req, res) => {
 });
 
 // Update menu for a business
-router.put('/business/:businessId/menu', (req, res) => {
+router.put('/business/:businessId/menu', requireAuth, requireBusinessMatch, (req, res) => {
   const { businessId } = req.params;
   const { menu } = req.body;
   
