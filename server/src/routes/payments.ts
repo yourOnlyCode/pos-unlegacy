@@ -2,9 +2,15 @@ import express from 'express';
 import Stripe from 'stripe';
 
 const router = express.Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
-});
+
+function getStripe() {
+  if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY === 'sk_test_placeholder') {
+    throw new Error('Stripe not configured - please set STRIPE_SECRET_KEY in .env');
+  }
+  return new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2025-11-17.clover',
+  });
+}
 
 // Create payment intent for SMS orders with Stripe Connect
 router.post('/create-payment-intent', async (req, res) => {
@@ -18,6 +24,7 @@ router.post('/create-payment-intent', async (req, res) => {
     // Calculate platform fee (e.g., $2 + 2% of order)
     const platformFeeAmount = Math.round((2.00 + (amount * 0.02)) * 100); // $2 + 2%
 
+    const stripe = getStripe();
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100), // Convert to cents
       currency,
@@ -51,6 +58,7 @@ router.post('/create-terminal-payment', async (req, res) => {
   try {
     const { amount, currency = 'usd' } = req.body;
 
+    const stripe = getStripe();
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100),
       currency,
@@ -72,6 +80,7 @@ router.post('/capture-payment/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
+    const stripe = getStripe();
     const paymentIntent = await stripe.paymentIntents.capture(id);
     
     res.json({ 
