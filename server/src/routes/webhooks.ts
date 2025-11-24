@@ -3,9 +3,15 @@ import Stripe from 'stripe';
 import { getTenantByPhone } from '../services/tenantService';
 
 const router = express.Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
-});
+
+function getStripe() {
+  if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY === 'sk_test_placeholder') {
+    throw new Error('Stripe not configured - please set STRIPE_SECRET_KEY in .env');
+  }
+  return new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2025-11-17.clover',
+  });
+}
 
 // Stripe webhook for payment confirmations
 router.post('/stripe', express.raw({ type: 'application/json' }), (req, res) => {
@@ -13,6 +19,7 @@ router.post('/stripe', express.raw({ type: 'application/json' }), (req, res) => 
   let event: Stripe.Event;
 
   try {
+    const stripe = getStripe();
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
   } catch (err) {
     console.log('Webhook signature verification failed:', err);

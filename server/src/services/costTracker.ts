@@ -12,7 +12,11 @@ interface CostSummary {
 
 export function calculateCosts(): CostSummary {
   const { getPurchasedNumbers } = require('./phonePoolService');
-  const numbers = getPurchasedNumbers();
+  const numbers: Array<{
+    businessId: string;
+    number: string;
+    purchasedAt: Date;
+  }> = getPurchasedNumbers();
   
   const MONTHLY_COST_PER_NUMBER = 1.00;
   const totalNumbers = numbers.length;

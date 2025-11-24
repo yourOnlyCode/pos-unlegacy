@@ -3,9 +3,15 @@ import Stripe from 'stripe';
 import { getTenantByPhone, updateTenant } from '../services/tenantService';
 
 const router = express.Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
-});
+
+function getStripe() {
+  if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY === 'sk_test_placeholder') {
+    throw new Error('Stripe not configured - please set STRIPE_SECRET_KEY in .env');
+  }
+  return new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2025-11-17.clover',
+  });
+}
 
 // Create Stripe Connect account for business
 router.post('/create-account', async (req, res) => {
@@ -13,6 +19,7 @@ router.post('/create-account', async (req, res) => {
     const { businessId, businessName, email, phoneNumber } = req.body;
 
     // Create Stripe Express account
+    const stripe = getStripe();
     const account = await stripe.accounts.create({
       type: 'express',
       country: 'US',
@@ -46,6 +53,7 @@ router.post('/create-account-link', async (req, res) => {
   try {
     const { accountId } = req.body;
 
+    const stripe = getStripe();
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
       refresh_url: `${process.env.BASE_URL || 'http://localhost:3000'}/connect/refresh`,
@@ -65,6 +73,7 @@ router.get('/account-status/:accountId', async (req, res) => {
   try {
     const { accountId } = req.params;
 
+    const stripe = getStripe();
     const account = await stripe.accounts.retrieve(accountId);
 
     res.json({
