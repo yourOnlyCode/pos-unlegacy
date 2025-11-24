@@ -18,8 +18,9 @@ export function parseOrder(message: string, menu: Record<string, number>): Parse
   // Extract customer name ("for John" or "name: Sarah")
   let customerName: string | undefined;
   const namePatterns = [
-    /(?:for|name:?)\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)?)/i,
-    /^([a-zA-Z]+(?:\s+[a-zA-Z]+)?)\s*[-:]/, // "John: 2 coffee"
+    /(?:for|name:?)\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)?)/i, // "for John" or "name John"
+    /^([a-zA-Z]+(?:\s+[a-zA-Z]+)*)\s*,/, // "Philip, two bagels please" or "Mary Ann, 2 coffee"
+    /^([a-zA-Z]+(?:\s+[a-zA-Z]+)?)\s*[-:]/, // "John: 2 coffee" or "John - 2 coffee"
   ];
   
   for (const pattern of namePatterns) {
@@ -28,6 +29,11 @@ export function parseOrder(message: string, menu: Record<string, number>): Parse
       customerName = match[1].trim();
       break;
     }
+  }
+  if (customerName) {
+    console.log('[orderParser] Extracted customerName:', customerName);
+  } else {
+    console.log('[orderParser] No customerName extracted from message:', originalText);
   }
   
   // Extract table number ("table 5" or "#3")

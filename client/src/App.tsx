@@ -6,6 +6,7 @@ import POSInterface from './components/POSInterface';
 import PaymentPage from './components/PaymentPage';
 import OnboardingFlow from './components/onboarding/OnboardingFlow';
 import ConnectSuccess from './components/ConnectSuccess';
+import AdminDashboard from './components/AdminDashboard';
 
 const theme = createTheme({
   palette: {
@@ -26,6 +27,7 @@ function App() {
             <Route path="/pay/:orderId" element={<PaymentPage />} />
             <Route path="/onboarding" element={<OnboardingFlow />} />
             <Route path="/connect/success" element={<ConnectSuccess />} />
+            <Route path="/admin/:businessId" element={<AdminDashboard />} />
           </Routes>
         </Container>
       </Router>

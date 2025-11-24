@@ -3,6 +3,7 @@ interface Tenant {
   businessName: string;
   phoneNumber: string;
   menu: Record<string, number>;
+  inventory: Record<string, number>; // Item name -> quantity in stock
   stripeAccountId?: string;
   settings: {
     currency: string;
@@ -28,7 +29,16 @@ tenants.set('+15551234567', {
     'bagel': 3.50,
     'muffin': 2.99
   },
-  stripeAccountId: 'acct_test123', // Add Stripe account for testing
+  inventory: {
+    'coffee': 50,
+    'latte': 30,
+    'cappuccino': 25,
+    'sandwich': 15,
+    'pastry': 20,
+    'bagel': 10,
+    'muffin': 12
+  },
+  stripeAccountId: 'acct_test123',
   settings: {
     currency: 'USD',
     timezone: 'America/New_York',
@@ -46,7 +56,13 @@ tenants.set('+15559876543', {
     'soda': 2.25,
     'salad': 6.75
   },
-  stripeAccountId: 'acct_test456', // Add Stripe account for testing
+  inventory: {
+    'pizza': 20,
+    'wings': 5,
+    'soda': 50,
+    'salad': 8
+  },
+  stripeAccountId: 'acct_test456',
   settings: {
     currency: 'USD',
     timezone: 'America/Los_Angeles',
@@ -71,5 +87,41 @@ export function updateTenant(phoneNumber: string, updates: Partial<Tenant>): boo
   if (!tenant) return false;
   
   tenants.set(phoneNumber, { ...tenant, ...updates });
+  return true;
+}
+
+export function checkInventory(phoneNumber: string, itemName: string, quantity: number): { available: boolean; inStock: number } {
+  const tenant = tenants.get(phoneNumber);
+  if (!tenant) return { available: false, inStock: 0 };
+  
+  const inStock = tenant.inventory[itemName] || 0;
+  return {
+    available: inStock >= quantity,
+    inStock
+  };
+}
+
+export function reduceInventory(phoneNumber: string, items: Array<{ name: string; quantity: number }>): boolean {
+  const tenant = tenants.get(phoneNumber);
+  if (!tenant) return false;
+  
+  // Create a copy of inventory
+  const newInventory = { ...tenant.inventory };
+  
+  // Check if all items are available
+  for (const item of items) {
+    const currentStock = newInventory[item.name] || 0;
+    if (currentStock < item.quantity) {
+      return false; // Not enough stock
+    }
+  }
+  
+  // Reduce inventory for all items
+  for (const item of items) {
+    newInventory[item.name] -= item.quantity;
+  }
+  
+  // Update tenant with new inventory
+  tenants.set(phoneNumber, { ...tenant, inventory: newInventory });
   return true;
 }

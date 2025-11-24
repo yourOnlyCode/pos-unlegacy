@@ -122,7 +122,7 @@ export default function PaymentPage() {
         </Alert>
         <Typography variant="h5">Thank you for your order!</Typography>
         <Typography variant="body1" sx={{ mt: 2 }}>
-          Order #{order?.id} will be ready in 10 minutes.
+          Order #{order?.id}
         </Typography>
       </Box>
     );
