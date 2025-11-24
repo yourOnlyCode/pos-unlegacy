@@ -22,10 +22,10 @@ router.get('/tenants/:phone', (req, res) => {
 
 // Add new tenant with auto-assigned phone number
 router.post('/tenants', async (req, res) => {
-  const { id, businessName, menu, settings } = req.body;
+  const { id, businessName, menu, settings, email } = req.body;
   
-  if (!id || !businessName || !menu) {
-    return res.status(400).json({ error: 'Missing required fields' });
+  if (!id || !businessName || !menu || !email) {
+    return res.status(400).json({ error: 'Missing required fields (id, businessName, menu, email)' });
   }
 
   // Auto-assign phone number from pool
@@ -47,7 +47,16 @@ router.post('/tenants', async (req, res) => {
   };
 
   addTenant(tenant);
-  res.status(201).json(tenant);
+  
+  // Return tenant info with next step for Stripe Connect
+  res.status(201).json({
+    ...tenant,
+    nextStep: {
+      action: 'create_stripe_account',
+      endpoint: '/api/connect/create-account',
+      data: { businessId: id, businessName, email, phoneNumber }
+    }
+  });
 });
 
 // Get all purchased phone numbers with cost breakdown

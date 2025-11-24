@@ -57,28 +57,31 @@ export default function PaymentPage() {
     
     setPaying(true);
     try {
-      // Create payment intent
+      // Format order details for business notification
+      const orderDetails = order.items
+        .map(item => `${item.quantity}x ${item.name} ($${(item.price * item.quantity).toFixed(2)})`)
+        .join('\n');
+
+      // Create payment intent with order metadata
       const paymentResponse = await fetch('/api/payments/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: order.total }),
+        body: JSON.stringify({ 
+          amount: order.total,
+          orderId: order.id,
+          businessPhone: order.businessPhone || '',
+          customerPhone: order.customerPhone,
+          orderDetails: `${orderDetails}\nTotal: $${order.total.toFixed(2)}`,
+          stripeAccountId: order.stripeAccountId
+        }),
       });
 
-      const { id: paymentId } = await paymentResponse.json();
+      const { clientSecret } = await paymentResponse.json();
 
-      // Simulate payment processing
+      // Simulate payment processing (in production, use Stripe Elements)
       setTimeout(async () => {
         try {
-          // Capture payment
-          await fetch(`/api/payments/capture-payment/${paymentId}`, {
-            method: 'POST',
-          });
-
-          // Mark order as paid
-          await fetch(`/api/sms/order/${order.id}/paid`, {
-            method: 'POST',
-          });
-
+          // In production, Stripe webhook will handle this automatically
           setSuccess(true);
         } catch (err) {
           setError('Payment failed');

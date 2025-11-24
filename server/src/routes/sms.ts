@@ -39,13 +39,15 @@ router.post('/webhook', (req, res) => {
   // Generate order ID
   const orderId = Date.now().toString();
   
-  // Store order
+  // Store order as pending payment
   orders.set(orderId, {
     id: orderId,
     customerPhone,
+    businessPhone: businessPhone,
+    tenant: tenant,
     items: parsedOrder.items,
     total: parsedOrder.total,
-    status: 'pending',
+    status: 'awaiting_payment',
     createdAt: new Date()
   });
 
@@ -57,7 +59,12 @@ router.post('/webhook', (req, res) => {
     .map(item => `${item.quantity}x ${item.name} ($${(item.price * item.quantity).toFixed(2)})`)
     .join(', ');
 
-  const response = `Order confirmed!\n${itemsList}\nTotal: $${parsedOrder.total.toFixed(2)}\n\nPay here: ${paymentLink}\n\nOrder #${orderId}`;
+  let response;
+  if (!tenant.stripeAccountId) {
+    response = `Sorry, ${tenant.businessName} hasn't completed their payment setup yet. Please try again later or call directly.`;
+  } else {
+    response = `Order ready for payment:\n\n${itemsList}\nTotal: $${parsedOrder.total.toFixed(2)}\n\nPay now: ${paymentLink}\n\n⚠️ Order will only be sent to ${tenant.businessName} after payment is confirmed.`;
+  }
 
   sendSMS(customerPhone, response);
   
