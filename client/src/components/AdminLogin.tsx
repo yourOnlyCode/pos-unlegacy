@@ -3,7 +3,7 @@ import { Box, Paper, TextField, Button, Typography, Alert, CircularProgress, Tab
 import { useNavigate } from 'react-router-dom';
 
 function AdminLogin() {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<'login' | 'register' | 'stripeLogin' | 'stripeRegister'>('login');
   const [businessId, setBusinessId] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,11 +17,11 @@ function AdminLogin() {
     const bId = businessId.trim();
     const em = email.trim();
     const pw = password;
-    if (mode === 'register' && (!bId || !em || !pw)) {
+    if (['register','stripeRegister'].includes(mode) && (!bId || !em || !pw)) {
       setError('All fields required for registration');
       return;
     }
-    if (mode === 'login' && (!em || !pw)) {
+    if (['login','stripeLogin'].includes(mode) && (!em || !pw)) {
       setError('Email and password required');
       return;
     }
@@ -41,8 +41,24 @@ function AdminLogin() {
         localStorage.setItem('authToken', data.token);
         localStorage.setItem('businessId', data.businessId);
         navigate(`/admin/${data.businessId}`);
+      } else if (mode === 'stripeRegister') {
+        const res = await fetch('/api/auth/stripe/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ businessId: bId, email: em, password: pw })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || 'Stripe registration failed');
+          return;
+        }
+        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('businessId', data.businessId);
+        localStorage.setItem('stripeAccountId', data.stripeAccountId);
+        navigate(`/admin/${data.businessId}`);
       } else {
-        const res = await fetch('/api/auth/login', {
+        const endpoint = mode === 'stripeLogin' ? '/api/auth/stripe/login' : '/api/auth/login';
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: em, password: pw })
@@ -54,6 +70,9 @@ function AdminLogin() {
         }
         localStorage.setItem('authToken', data.token);
         localStorage.setItem('businessId', data.businessId);
+        if (data.stripeAccountId) {
+          localStorage.setItem('stripeAccountId', data.stripeAccountId);
+        }
         navigate(`/admin/${data.businessId}`);
       }
     } catch (err) {
@@ -66,17 +85,24 @@ function AdminLogin() {
   return (
     <Box display="flex" justifyContent="center" alignItems="center" minHeight="70vh">
       <Paper elevation={4} sx={{ p: 4, width: 400 }}>
-        <Tabs value={mode} onChange={(_, v) => setMode(v)} sx={{ mb: 2 }}>
+        <Tabs value={mode} onChange={(_, v) => setMode(v)} sx={{ mb: 2 }} variant="scrollable" allowScrollButtonsMobile>
           <Tab label="Login" value="login" />
           <Tab label="Register" value="register" />
+          <Tab label="Stripe Login" value="stripeLogin" />
+            <Tab label="Stripe Register" value="stripeRegister" />
         </Tabs>
-        <Typography variant="h5" gutterBottom>{mode === 'login' ? 'Admin Login' : 'Create Admin Account'}</Typography>
+        <Typography variant="h5" gutterBottom>
+          {mode === 'login' && 'Admin Login'}
+          {mode === 'register' && 'Create Admin Account'}
+          {mode === 'stripeLogin' && 'Login (Stripe Linked)'}
+          {mode === 'stripeRegister' && 'Register (Stripe Linked)'}
+        </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           {mode === 'login' ? 'Access your business dashboard.' : 'Register an admin account for an existing business.'}
         </Typography>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         <Box component="form" onSubmit={handleSubmit}>
-          {mode === 'register' && (
+          {['register','stripeRegister'].includes(mode) && (
             <TextField
               label="Business ID"
               fullWidth
@@ -110,7 +136,11 @@ function AdminLogin() {
             disabled={loading}
             sx={{ mt: 1 }}
           >
-            {loading ? <CircularProgress size={22} /> : (mode === 'login' ? 'Login' : 'Register')}
+            {loading ? <CircularProgress size={22} /> : (
+              mode === 'login' ? 'Login' :
+              mode === 'register' ? 'Register' :
+              mode === 'stripeLogin' ? 'Stripe Login' : 'Stripe Register'
+            )}
           </Button>
         </Box>
         <Box mt={3}>
