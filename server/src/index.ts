@@ -7,6 +7,8 @@ import smsRoutes from './routes/sms';
 import adminRoutes from './routes/admin';
 import webhookRoutes from './routes/webhooks';
 import connectRoutes from './routes/connect';
+import exportRoutes from './routes/export';
+import { BackupScheduler } from './services/backupScheduler';
 
 dotenv.config();
 
@@ -27,7 +29,11 @@ app.use('/api/sms', smsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/connect', connectRoutes);
+app.use('/api/export', exportRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  
+  // Start automatic backup scheduler
+  BackupScheduler.getInstance().start();
 });
