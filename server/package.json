@@ -12,6 +12,7 @@
     "jsonwebtoken": "^9.0.0",
     "prisma": "^4.12.0",
     "stripe": "^20.0.0",
+    "twilio": "^5.10.6",
     "zod": "^3.21.4"
   },
   "devDependencies": {
