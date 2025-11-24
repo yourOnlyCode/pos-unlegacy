@@ -9,7 +9,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 // Create payment intent for SMS orders with Stripe Connect
 router.post('/create-payment-intent', async (req, res) => {
   try {
-    const { amount, currency = 'usd', orderId, businessPhone, customerPhone, orderDetails, stripeAccountId } = req.body;
+    const { amount, currency = 'usd', orderId, businessPhone, customerPhone, orderDetails, stripeAccountId, customerName, tableNumber } = req.body;
 
     if (!stripeAccountId) {
       return res.status(400).json({ error: 'Business Stripe account not connected' });
@@ -30,7 +30,9 @@ router.post('/create-payment-intent', async (req, res) => {
         orderId: orderId || 'unknown',
         businessPhone: businessPhone || '',
         customerPhone: customerPhone || '',
-        orderDetails: orderDetails || ''
+        orderDetails: orderDetails || '',
+        customerName: customerName || '',
+        tableNumber: tableNumber || ''
       }
     });
 

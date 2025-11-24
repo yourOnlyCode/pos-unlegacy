@@ -47,6 +47,8 @@ router.post('/webhook', (req, res) => {
     tenant: tenant,
     items: parsedOrder.items,
     total: parsedOrder.total,
+    customerName: parsedOrder.customerName,
+    tableNumber: parsedOrder.tableNumber,
     status: 'awaiting_payment',
     createdAt: new Date()
   });
