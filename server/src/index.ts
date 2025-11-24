@@ -8,6 +8,7 @@ import adminRoutes from './routes/admin';
 import webhookRoutes from './routes/webhooks';
 import connectRoutes from './routes/connect';
 import exportRoutes from './routes/export';
+import testRoutes from './routes/test';
 import { BackupScheduler } from './services/backupScheduler';
 
 dotenv.config();
@@ -30,6 +31,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/connect', connectRoutes);
 app.use('/api/export', exportRoutes);
+app.use('/api/test', testRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

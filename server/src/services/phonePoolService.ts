@@ -13,7 +13,17 @@ interface PhoneNumber {
 const purchasedNumbers = new Map<string, PhoneNumber>();
 
 export async function assignPhoneNumber(businessId: string): Promise<string | null> {
-  // Always purchase new number for each business
+  // Check if we're in test mode (no real Twilio credentials)
+  const isTestMode = !process.env.TWILIO_ACCOUNT_SID || 
+                     process.env.TWILIO_ACCOUNT_SID === 'test_account_sid' ||
+                     process.env.TWILIO_ACCOUNT_SID.startsWith('test_');
+  
+  if (isTestMode) {
+    // Generate a mock phone number for testing
+    return generateMockPhoneNumber(businessId);
+  }
+  
+  // Production: Always purchase new number for each business
   return await purchaseNewNumber(businessId);
 }
 
@@ -51,6 +61,23 @@ export function getNumberByBusiness(businessId: string): string | null {
     }
   }
   return null;
+}
+
+function generateMockPhoneNumber(businessId: string): string {
+  // Generate a unique mock phone number for testing
+  const timestamp = Date.now().toString().slice(-8);
+  const mockNumber = `+1555${timestamp}`;
+  
+  // Track mock number
+  purchasedNumbers.set(mockNumber, {
+    number: mockNumber,
+    businessId,
+    purchasedAt: new Date(),
+    twilioSid: `PN_mock_${businessId}_${timestamp}`
+  });
+  
+  console.log(`[TEST MODE] Generated mock phone number ${mockNumber} for ${businessId}`);
+  return mockNumber;
 }
 
 async function purchaseNewNumber(businessId: string): Promise<string | null> {

@@ -2,12 +2,10 @@ import express from 'express';
 import twilio from 'twilio';
 import { parseOrder } from '../services/orderParser';
 import { getTenantByPhone } from '../services/tenantService';
+import { getOrder, createOrder, updateOrder } from '../services/orderService';
 
 const router = express.Router();
 const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-
-// In-memory storage for demo (use database in production)
-const orders = new Map<string, any>();
 
 // Webhook endpoint for incoming SMS
 router.post('/webhook', (req, res) => {
@@ -29,10 +27,10 @@ router.post('/webhook', (req, res) => {
   const parsedOrder = parseOrder(message, tenant.menu);
 
   if (!parsedOrder.isValid) {
-    // Send help message
-    sendSMS(customerPhone, 
-      "Sorry, I couldn't understand your order. Try: '2 coffee, 1 sandwich' or text 'menu' for options."
-    );
+    // Send detailed error message with format instructions
+    const errorMsg = parsedOrder.errorMessage || 
+      "Sorry, I couldn't understand your order. Please text 'menu' for options.";
+    sendSMS(customerPhone, errorMsg);
     return res.status(200).send('OK');
   }
 
@@ -40,7 +38,7 @@ router.post('/webhook', (req, res) => {
   const orderId = Date.now().toString();
   
   // Store order as pending payment
-  orders.set(orderId, {
+  createOrder(orderId, {
     id: orderId,
     customerPhone,
     businessPhone: businessPhone,
@@ -50,7 +48,8 @@ router.post('/webhook', (req, res) => {
     customerName: parsedOrder.customerName,
     tableNumber: parsedOrder.tableNumber,
     status: 'awaiting_payment',
-    createdAt: new Date()
+    createdAt: new Date(),
+    stripeAccountId: tenant.stripeAccountId
   });
 
   // Create payment link
@@ -59,13 +58,18 @@ router.post('/webhook', (req, res) => {
   // Format order summary
   const itemsList = parsedOrder.items
     .map(item => `${item.quantity}x ${item.name} ($${(item.price * item.quantity).toFixed(2)})`)
-    .join(', ');
+    .join('\n');
 
   let response;
   if (!tenant.stripeAccountId) {
     response = `Sorry, ${tenant.businessName} hasn't completed their payment setup yet. Please try again later or call directly.`;
   } else {
-    response = `Order ready for payment:\n\n${itemsList}\nTotal: $${parsedOrder.total.toFixed(2)}\n\nPay now: ${paymentLink}\n\n⚠️ Order will only be sent to ${tenant.businessName} after payment is confirmed.`;
+    // Add verification note if fuzzy matching was used
+    const verificationNote = parsedOrder.hasFuzzyMatches 
+      ? `✓ I understood your order as:\n\n${itemsList}\n\nTotal: $${parsedOrder.total.toFixed(2)}\n\nIf this looks correct, pay now:\n${paymentLink}\n\n⚠️ Order will only be sent to ${tenant.businessName} after payment is confirmed.`
+      : `Order ready for payment:\n\n${itemsList}\n\nTotal: $${parsedOrder.total.toFixed(2)}\n\nPay now:\n${paymentLink}\n\n⚠️ Order will only be sent to ${tenant.businessName} after payment is confirmed.`;
+    
+    response = verificationNote;
   }
 
   sendSMS(customerPhone, response);
@@ -87,7 +91,7 @@ router.post('/webhook', (req, res) => {
 
 // Get order details for payment page
 router.get('/order/:id', (req, res) => {
-  const order = orders.get(req.params.id);
+  const order = getOrder(req.params.id);
   if (!order) {
     return res.status(404).json({ error: 'Order not found' });
   }
@@ -96,13 +100,12 @@ router.get('/order/:id', (req, res) => {
 
 // Update order status after payment
 router.post('/order/:id/paid', (req, res) => {
-  const order = orders.get(req.params.id);
+  const order = getOrder(req.params.id);
   if (!order) {
     return res.status(404).json({ error: 'Order not found' });
   }
   
-  order.status = 'paid';
-  orders.set(req.params.id, order);
+  updateOrder(req.params.id, { status: 'paid' });
   
   // Send confirmation SMS
   sendSMS(order.customerPhone, 

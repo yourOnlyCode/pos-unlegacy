@@ -22,9 +22,13 @@ tenants.set('+15551234567', {
   menu: {
     'coffee': 4.50,
     'latte': 5.25,
+    'cappuccino': 4.75,
     'sandwich': 8.99,
-    'pastry': 3.25
+    'pastry': 3.25,
+    'bagel': 3.50,
+    'muffin': 2.99
   },
+  stripeAccountId: 'acct_test123', // Add Stripe account for testing
   settings: {
     currency: 'USD',
     timezone: 'America/New_York',
@@ -42,6 +46,7 @@ tenants.set('+15559876543', {
     'soda': 2.25,
     'salad': 6.75
   },
+  stripeAccountId: 'acct_test456', // Add Stripe account for testing
   settings: {
     currency: 'USD',
     timezone: 'America/Los_Angeles',

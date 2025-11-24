@@ -17,8 +17,28 @@ function getStripe() {
 router.post('/create-account', async (req, res) => {
   try {
     const { businessId, businessName, email, phoneNumber } = req.body;
+    
+    console.log('Creating Stripe account for:', { businessId, businessName, email });
 
-    // Create Stripe Express account
+    // Check if Stripe is configured
+    if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY === 'sk_test_placeholder') {
+      console.log('[TEST MODE] Skipping Stripe account creation - using mock account');
+      
+      // Mock Stripe account ID for testing
+      const mockAccountId = `acct_test_${businessId}_${Date.now()}`;
+      
+      // Update tenant with mock Stripe account ID
+      updateTenant(phoneNumber, { stripeAccountId: mockAccountId });
+      
+      return res.json({
+        accountId: mockAccountId,
+        businessId,
+        status: 'created',
+        testMode: true
+      });
+    }
+
+    // Create real Stripe Express account
     const stripe = getStripe();
     const account = await stripe.accounts.create({
       type: 'express',
@@ -36,6 +56,8 @@ router.post('/create-account', async (req, res) => {
 
     // Update tenant with Stripe account ID
     updateTenant(phoneNumber, { stripeAccountId: account.id });
+    
+    console.log('Stripe account created:', account.id);
 
     res.json({
       accountId: account.id,
@@ -44,6 +66,7 @@ router.post('/create-account', async (req, res) => {
     });
 
   } catch (error) {
+    console.error('Error creating Stripe account:', error);
     res.status(400).json({ error: (error as Error).message });
   }
 });
@@ -52,6 +75,19 @@ router.post('/create-account', async (req, res) => {
 router.post('/create-account-link', async (req, res) => {
   try {
     const { accountId } = req.body;
+    
+    console.log('Creating account link for:', accountId);
+
+    // Check if in test mode
+    if (!process.env.STRIPE_SECRET_KEY || 
+        process.env.STRIPE_SECRET_KEY === 'sk_test_placeholder' ||
+        accountId.startsWith('acct_test_')) {
+      console.log('[TEST MODE] Skipping Stripe onboarding - redirecting to success');
+      
+      // In test mode, skip Stripe onboarding and go straight to success
+      const mockUrl = `${process.env.BASE_URL || 'http://localhost:3000'}/connect/success`;
+      return res.json({ url: mockUrl });
+    }
 
     const stripe = getStripe();
     const accountLink = await stripe.accountLinks.create({
@@ -64,6 +100,7 @@ router.post('/create-account-link', async (req, res) => {
     res.json({ url: accountLink.url });
 
   } catch (error) {
+    console.error('Error creating account link:', error);
     res.status(400).json({ error: (error as Error).message });
   }
 });
