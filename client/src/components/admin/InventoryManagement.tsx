@@ -46,9 +46,13 @@ export default function InventoryManagement({
   const handleSaveMenu = async () => {
     setSaving(true);
     try {
+      const token = localStorage.getItem('authToken');
       const response = await fetch(`/api/admin/business/${businessId}/menu`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({ menu }),
       });
 

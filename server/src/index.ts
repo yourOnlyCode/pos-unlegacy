@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import paymentRoutes from './routes/payments';
+import authRoutes from './routes/auth';
 import smsRoutes from './routes/sms';
 import adminRoutes from './routes/admin';
 import webhookRoutes from './routes/webhooks';
@@ -26,6 +27,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/payments', paymentRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/sms', smsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/webhooks', webhookRoutes);

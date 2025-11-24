@@ -46,7 +46,10 @@ export default function OrdersList({ businessId }: OrdersListProps) {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch(`/api/admin/business/${businessId}/orders`);
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`/api/admin/business/${businessId}/orders`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
       if (response.ok) {
         const data = await response.json();
         setOrders(data.orders);
@@ -54,6 +57,8 @@ export default function OrdersList({ businessId }: OrdersListProps) {
           totalOrders: data.totalOrders,
           totalRevenue: data.totalRevenue,
         });
+      } else if (response.status === 401 || response.status === 403) {
+        setError('Unauthorized. Please log in again.');
       } else {
         throw new Error('Failed to fetch orders');
       }

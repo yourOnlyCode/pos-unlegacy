@@ -40,6 +40,12 @@ function TabPanel(props: TabPanelProps) {
 export default function AdminDashboard() {
   const { businessId } = useParams<{ businessId: string }>();
   const navigate = useNavigate();
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+
+    if (!token) {
+      navigate('/');
+      return null;
+    }
   const [tabValue, setTabValue] = useState(0);
   const [business, setBusiness] = useState<any>(null);
   const [loading, setLoading] = useState(true);
