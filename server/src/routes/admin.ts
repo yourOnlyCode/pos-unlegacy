@@ -2,6 +2,7 @@ import express from 'express';
 import { getTenantByPhone, getAllTenants, addTenant, updateTenant } from '../services/tenantService';
 import { assignPhoneNumber, releasePhoneNumber, getPurchasedNumbers, getNumberByBusiness } from '../services/phonePoolService';
 import { calculateCosts } from '../services/costTracker';
+import { getAllOrders } from '../services/orderService';
 
 const router = express.Router();
 
@@ -42,11 +43,18 @@ router.post('/tenants', async (req, res) => {
 
     console.log('Phone number assigned:', phoneNumber);
 
+    // Initialize inventory with default stock levels for each menu item
+    const inventory: Record<string, number> = {};
+    Object.keys(menu).forEach(itemName => {
+      inventory[itemName] = 50; // Default stock of 50 for each item
+    });
+
     const tenant = {
       id,
       businessName,
       phoneNumber,
       menu,
+      inventory,
       settings: settings || {
         currency: 'USD',
         timezone: 'America/New_York',
@@ -122,6 +130,63 @@ router.put('/tenants/:phone', (req, res) => {
   
   const updatedTenant = getTenantByPhone(req.params.phone);
   res.json(updatedTenant);
+});
+
+// Get orders for a specific business
+router.get('/business/:businessId/orders', (req, res) => {
+  try {
+    const { businessId } = req.params;
+    
+    // Find business by ID in tenants
+    const allTenants = getAllTenants();
+    const business = allTenants.find(t => t.id === businessId);
+    
+    if (!business) {
+      return res.status(404).json({ error: 'Business not found' });
+    }
+    
+    const phoneNumber = business.phoneNumber;
+    const allOrders = getAllOrders();
+    
+    // Filter orders for this business
+    const businessOrders = allOrders.filter((order: any) => 
+      order.businessPhone === phoneNumber
+    );
+    
+    res.json({
+      businessId,
+      phoneNumber,
+      orders: businessOrders,
+      totalOrders: businessOrders.length,
+      totalRevenue: businessOrders
+        .filter((o: any) => o.status === 'paid')
+        .reduce((sum: number, o: any) => sum + o.total, 0)
+    });
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    res.status(500).json({ error: 'Failed to fetch orders' });
+  }
+});
+
+// Update menu for a business
+router.put('/business/:businessId/menu', (req, res) => {
+  const { businessId } = req.params;
+  const { menu } = req.body;
+  
+  // Find business by ID in tenants
+  const allTenants = getAllTenants();
+  const business = allTenants.find(t => t.id === businessId);
+  
+  if (!business) {
+    return res.status(404).json({ error: 'Business not found' });
+  }
+  
+  const success = updateTenant(business.phoneNumber, { menu });
+  if (!success) {
+    return res.status(500).json({ error: 'Failed to update menu' });
+  }
+  
+  res.json({ success: true, menu });
 });
 
 export default router;

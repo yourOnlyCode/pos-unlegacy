@@ -88,7 +88,7 @@ router.post('/order/:id/paid', (req, res) => {
     order.status = 'paid';
     orders.set(req.params.id, order);
     // Send confirmation SMS
-    sendSMS(order.customerPhone, `Payment received! Order #${order.id} will be ready in 10 minutes. Thank you!`);
+    sendSMS(order.customerPhone, `Payment received! Order #${order.id}`);
     res.json({ success: true });
 });
 async function sendSMS(to, message) {

@@ -1,6 +1,6 @@
 import express from 'express';
 import { parseOrder } from '../services/orderParser';
-import { getTenantByPhone } from '../services/tenantService';
+import { getTenantByPhone, checkInventory } from '../services/tenantService';
 import { createOrder } from '../services/orderService';
 
 const router = express.Router();
@@ -65,6 +65,51 @@ router.post('/sms', (req, res) => {
     });
   }
 
+  // Check inventory for all items
+  const inventoryIssues: string[] = [];
+  const stockWarnings: string[] = [];
+  
+  for (const item of parsedOrder.items) {
+    const { available, inStock } = checkInventory(businessPhone, item.name, item.quantity);
+    
+    if (!available) {
+      if (inStock === 0) {
+        inventoryIssues.push(`❌ ${item.name} is SOLD OUT`);
+      } else {
+        inventoryIssues.push(`❌ ${item.name}: Only ${inStock} left (you ordered ${item.quantity})`);
+      }
+    } else if (inStock <= 5 && inStock > 0) {
+      // Warn if running low
+      stockWarnings.push(`⚠️ ${item.name}: Only ${inStock} left in stock`);
+    }
+  }
+
+  // If any items are out of stock or insufficient, send error message
+  if (inventoryIssues.length > 0) {
+    smsResponse = "Sorry, we can't fulfill your order:\n\n" + inventoryIssues.join('\n');
+    if (stockWarnings.length > 0) {
+      smsResponse += '\n\n' + stockWarnings.join('\n');
+    }
+    smsResponse += '\n\nPlease adjust your order and try again.';
+    
+    mockSmsResponses.push({
+      to: customerPhone,
+      message: smsResponse,
+      timestamp: new Date()
+    });
+
+    console.log(`❌ Inventory check failed`);
+    console.log(`📤 SMS Response:\n${smsResponse}\n`);
+
+    return res.json({
+      success: false,
+      inventoryIssues,
+      stockWarnings,
+      smsResponse,
+      allResponses: mockSmsResponses
+    });
+  }
+
   // Generate order ID
   const orderId = Date.now().toString();
   
@@ -95,9 +140,12 @@ router.post('/sms', (req, res) => {
   if (!tenant.stripeAccountId) {
     smsResponse = `Sorry, ${tenant.businessName} hasn't completed their payment setup yet. Please try again later or call directly.`;
   } else {
+    // Add stock warnings to message if any
+    const stockInfo = stockWarnings.length > 0 ? '\n\n' + stockWarnings.join('\n') + '\n' : '';
+    
     const verificationNote = parsedOrder.hasFuzzyMatches 
-      ? `✓ I understood your order as:\n\n${itemsList}\n\nTotal: $${parsedOrder.total.toFixed(2)}\n\nIf this looks correct, pay now:\n${paymentLink}\n\n⚠️ Order will only be sent to ${tenant.businessName} after payment is confirmed.`
-      : `Order ready for payment:\n\n${itemsList}\n\nTotal: $${parsedOrder.total.toFixed(2)}\n\nPay now:\n${paymentLink}\n\n⚠️ Order will only be sent to ${tenant.businessName} after payment is confirmed.`;
+      ? `✓ I understood your order as:\n\n${itemsList}\n\nTotal: $${parsedOrder.total.toFixed(2)}${stockInfo}\n\nIf this looks correct, pay now:\n${paymentLink}\n\n⚠️ Order will only be sent to ${tenant.businessName} after payment is confirmed.`
+      : `Order ready for payment:\n\n${itemsList}\n\nTotal: $${parsedOrder.total.toFixed(2)}${stockInfo}\n\nPay now:\n${paymentLink}\n\n⚠️ Order will only be sent to ${tenant.businessName} after payment is confirmed.`;
     
     smsResponse = verificationNote;
   }
