@@ -28,10 +28,12 @@ router.post('/stripe', express.raw({ type: 'application/json' }), (req, res) => 
     const businessPhone = paymentIntent.metadata.businessPhone;
     const customerPhone = paymentIntent.metadata.customerPhone;
     const orderDetails = paymentIntent.metadata.orderDetails;
+    const customerName = paymentIntent.metadata.customerName;
+    const tableNumber = paymentIntent.metadata.tableNumber;
 
     if (orderId && businessPhone && customerPhone && orderDetails) {
       // Notify business of paid order
-      notifyBusinessOfOrder(businessPhone, orderId, orderDetails, customerPhone);
+      notifyBusinessOfOrder(businessPhone, orderId, orderDetails, customerPhone, customerName, tableNumber);
       
       // Send confirmation to customer
       sendCustomerConfirmation(customerPhone, orderId);
@@ -45,7 +47,9 @@ async function notifyBusinessOfOrder(
   businessPhone: string, 
   orderId: string, 
   orderDetails: string,
-  customerPhone: string
+  customerPhone: string,
+  customerName?: string,
+  tableNumber?: string
 ) {
   const twilio = require('twilio');
   const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
@@ -53,11 +57,20 @@ async function notifyBusinessOfOrder(
   const tenant = getTenantByPhone(businessPhone);
   if (!tenant) return;
 
+  // Build customer info line
+  let customerInfo = `Phone: ${customerPhone}`;
+  if (customerName || tableNumber) {
+    const nameInfo = customerName ? `Name: ${customerName}` : '';
+    const tableInfo = tableNumber ? `Table: ${tableNumber}` : '';
+    const extraInfo = [nameInfo, tableInfo].filter(Boolean).join(' | ');
+    customerInfo = `${extraInfo}\n${customerInfo}`;
+  }
+
   const message = `🔔 NEW PAID ORDER #${orderId}
 
 ${orderDetails}
 
-Customer: ${customerPhone}
+${customerInfo}
 Status: PAID ✅
 
 Reply "ready" when order is complete.`;

@@ -2,17 +2,50 @@ interface ParsedOrder {
   items: Array<{ name: string; quantity: number; price: number }>;
   total: number;
   isValid: boolean;
+  customerName?: string;
+  tableNumber?: string;
 }
 
 export function parseOrder(message: string, menu: Record<string, number>): ParsedOrder {
   const text = message.toLowerCase().trim();
+  const originalText = message.trim();
   const items: Array<{ name: string; quantity: number; price: number }> = [];
   
-  // Pattern: "2 coffee", "1 sandwich", etc.
+  // Extract customer name ("for John" or "name: Sarah")
+  let customerName: string | undefined;
+  const namePatterns = [
+    /(?:for|name:?)\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)?)/i,
+    /^([a-zA-Z]+(?:\s+[a-zA-Z]+)?)\s*[-:]/, // "John: 2 coffee"
+  ];
+  
+  for (const pattern of namePatterns) {
+    const match = originalText.match(pattern);
+    if (match) {
+      customerName = match[1].trim();
+      break;
+    }
+  }
+  
+  // Extract table number ("table 5" or "#3")
+  let tableNumber: string | undefined;
+  const tablePatterns = [
+    /table\s*(\d+)/i,
+    /#(\d+)/,
+    /(?:table|tbl)\s*([a-zA-Z]?\d+[a-zA-Z]?)/i,
+  ];
+  
+  for (const pattern of tablePatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      tableNumber = match[1];
+      break;
+    }
+  }
+  
+  // Create dynamic patterns based on menu items
+  const menuItemNames = Object.keys(menu).join('|');
   const patterns = [
-    /(\d+)\s+(coffee|latte|cappuccino)/g,
-    /(\d+)\s+(sandwich|bagel)/g,
-    /(\d+)\s+(pastry|muffin)/g,
+    new RegExp(`(\\d+)\\s+(${menuItemNames})`, 'gi'),
   ];
 
   // Try all patterns
@@ -44,6 +77,8 @@ export function parseOrder(message: string, menu: Record<string, number>): Parse
   return {
     items,
     total,
-    isValid: items.length > 0
+    isValid: items.length > 0,
+    customerName,
+    tableNumber
   };
 }
