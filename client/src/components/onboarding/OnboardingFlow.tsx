@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Box, Stepper, Step, StepLabel, Container } from '@mui/material';
 import { useOnboarding } from '../../hooks/useOnboarding';
 import BusinessInfoForm from './BusinessInfoForm';
@@ -7,7 +9,16 @@ import OnboardingComplete from './OnboardingComplete';
 const steps = ['Business Information', 'Payment Setup', 'Complete'];
 
 export default function OnboardingFlow() {
-  const { state, createBusiness, setupStripeAccount, resetOnboarding } = useOnboarding();
+  const [searchParams] = useSearchParams();
+  const { state, createBusiness, setupStripeAccount, resetOnboarding, completeOnboarding } = useOnboarding();
+  
+  // Handle redirect from Stripe Connect success
+  useEffect(() => {
+    const step = searchParams.get('step');
+    if (step === 'complete') {
+      completeOnboarding();
+    }
+  }, [searchParams, completeOnboarding]);
 
   const getActiveStep = () => {
     switch (state.step) {
