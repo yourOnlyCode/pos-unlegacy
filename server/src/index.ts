@@ -5,6 +5,8 @@ import dotenv from 'dotenv';
 import paymentRoutes from './routes/payments';
 import smsRoutes from './routes/sms';
 import adminRoutes from './routes/admin';
+import webhookRoutes from './routes/webhooks';
+import connectRoutes from './routes/connect';
 
 dotenv.config();
 
@@ -23,6 +25,8 @@ app.get('/api/health', (req, res) => {
 app.use('/api/payments', paymentRoutes);
 app.use('/api/sms', smsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/webhooks', webhookRoutes);
+app.use('/api/connect', connectRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

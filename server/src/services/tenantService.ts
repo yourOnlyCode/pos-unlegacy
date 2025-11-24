@@ -3,6 +3,7 @@ interface Tenant {
   businessName: string;
   phoneNumber: string;
   menu: Record<string, number>;
+  stripeAccountId?: string;
   settings: {
     currency: string;
     timezone: string;
