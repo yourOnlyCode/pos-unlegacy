@@ -80,4 +80,23 @@ router.post('/stripe/login', async (req, res) => {
   }
 });
 
+// Test admin login (development only). Issues a token for an existing business without credentials.
+router.post('/test-login', (req, res) => {
+  const allow = process.env.NODE_ENV !== 'production' || process.env.TEST_MODE === 'true';
+  if (!allow) return res.status(403).json({ error: 'Test login disabled in production' });
+  const { businessId } = req.body;
+  const tenants = getAllTenants();
+  const target = businessId ? tenants.find(t => t.id === businessId) : tenants[0];
+  if (!target) return res.status(404).json({ error: 'No tenant available for test login' });
+  const payload = {
+    sub: 'test-admin',
+    businessId: target.id,
+    email: 'test-admin@demo.local',
+    stripeAccountId: target.stripeAccountId,
+    test: true
+  } as any;
+  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '2h' });
+  res.json({ token, businessId: target.id, email: payload.email, stripeAccountId: target.stripeAccountId, test: true });
+});
+
 export default router;
