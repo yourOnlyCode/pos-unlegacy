@@ -44,4 +44,40 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Stripe-linked registration (requires tenant already has stripeAccountId)
+router.post('/stripe/register', async (req, res) => {
+  try {
+    const { businessId, email, password } = req.body;
+    if (!businessId || !email || !password) {
+      return res.status(400).json({ error: 'businessId, email, password required' });
+    }
+    const tenant = getAllTenants().find(t => t.id === businessId);
+    if (!tenant) return res.status(404).json({ error: 'Business not found' });
+    if (!tenant.stripeAccountId) return res.status(400).json({ error: 'Business not linked to Stripe yet' });
+    const user = await createUser(businessId, email, password, tenant.stripeAccountId);
+    const token = jwt.sign({ sub: user.id, businessId: user.businessId, email: user.email, stripeAccountId: tenant.stripeAccountId }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
+    res.status(201).json({ token, businessId: user.businessId, email: user.email, stripeAccountId: tenant.stripeAccountId });
+  } catch (err) {
+    res.status(400).json({ error: (err as Error).message });
+  }
+});
+
+// Stripe-linked login (verifies user + tenant stripe association)
+router.post('/stripe/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'email and password required' });
+    const user = await validateUser(email, password);
+    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+    const tenant = getAllTenants().find(t => t.id === user.businessId);
+    if (!tenant || !tenant.stripeAccountId || tenant.stripeAccountId !== user.stripeAccountId) {
+      return res.status(403).json({ error: 'Stripe account mismatch' });
+    }
+    const token = jwt.sign({ sub: user.id, businessId: user.businessId, email: user.email, stripeAccountId: tenant.stripeAccountId }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
+    res.json({ token, businessId: user.businessId, email: user.email, stripeAccountId: tenant.stripeAccountId });
+  } catch (err) {
+    res.status(500).json({ error: 'Stripe login failed' });
+  }
+});
+
 export default router;

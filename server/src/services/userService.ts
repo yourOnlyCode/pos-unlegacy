@@ -6,11 +6,12 @@ export interface UserAccount {
   email: string;
   passwordHash: string;
   createdAt: Date;
+  stripeAccountId?: string; // optional link to Stripe Connect account
 }
 
 const users = new Map<string, UserAccount>(); // key: email
 
-export async function createUser(businessId: string, email: string, password: string): Promise<UserAccount> {
+export async function createUser(businessId: string, email: string, password: string, stripeAccountId?: string): Promise<UserAccount> {
   const existing = users.get(email.toLowerCase());
   if (existing) throw new Error('Email already registered');
   const passwordHash = await bcrypt.hash(password, 10);
@@ -19,7 +20,8 @@ export async function createUser(businessId: string, email: string, password: st
     businessId,
     email: email.toLowerCase(),
     passwordHash,
-    createdAt: new Date()
+    createdAt: new Date(),
+    stripeAccountId
   };
   users.set(user.email, user);
   return user;
@@ -38,4 +40,8 @@ export function getUserByEmail(email: string): UserAccount | null {
 
 export function getUsersByBusiness(businessId: string): UserAccount[] {
   return Array.from(users.values()).filter(u => u.businessId === businessId);
+}
+
+export function getUsersByStripeAccount(stripeAccountId: string): UserAccount[] {
+  return Array.from(users.values()).filter(u => u.stripeAccountId === stripeAccountId);
 }
