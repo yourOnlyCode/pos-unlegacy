@@ -10,9 +10,7 @@ import {
   CardContent,
   CircularProgress,
   Alert,
-  Button,
 } from '@mui/material';
-import { ArrowBack } from '@mui/icons-material';
 import InventoryManagement from './admin/InventoryManagement';
 import OrdersList from './admin/OrdersList';
 
@@ -91,13 +89,6 @@ export default function AdminDashboard() {
     return (
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Alert severity="error">{error || 'Business not found'}</Alert>
-        <Button
-          startIcon={<ArrowBack />}
-          onClick={() => navigate('/')}
-          sx={{ mt: 2 }}
-        >
-          Back to Home
-        </Button>
       </Container>
     );
   }
@@ -105,14 +96,6 @@ export default function AdminDashboard() {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box sx={{ mb: 3 }}>
-        <Button
-          startIcon={<ArrowBack />}
-          onClick={() => navigate('/')}
-          sx={{ mb: 2 }}
-        >
-          Back
-        </Button>
-        
         <Card>
           <CardContent>
             <Typography variant="h4" gutterBottom>
