@@ -20,6 +20,8 @@ interface Order {
   total: number;
   status: string;
   customerPhone: string;
+  businessPhone?: string;
+  stripeAccountId?: string;
 }
 
 export default function PaymentPage() {
