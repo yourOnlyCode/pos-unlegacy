@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Business {
+  id              String   @id
+  businessName    String
+  email           String   @unique
+  passwordHash    String
+  phoneNumber     String?  @unique
+  stripeAccountId String?  @unique
+  menu            Json     @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  users   User[]
+  orders  Order[]
+  costs   Cost[]
+
+  @@map("businesses")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  businessId   String
+  role         String   @default("admin")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("users")
+}
+
+model Order {
+  id            String   @id
+  businessId    String
+  customerPhone String
+  customerName  String?
+  tableNumber   String?
+  items         Json
+  total         Float
+  status        String   @default("paid")
+  stripePaymentIntentId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  completedAt   DateTime?
+
+  // Relations
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("orders")
+}
+
+model Cost {
+  id          String   @id @default(cuid())
+  businessId  String
+  type        String   // "twilio_number", "twilio_sms", "stripe_fee"
+  amount      Float
+  description String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("costs")
+}
+
+model PhoneNumber {
+  id          String   @id @default(cuid())
+  phoneNumber String   @unique
+  businessId  String?  @unique
+  twilioSid   String   @unique
+  status      String   @default("available") // "available", "assigned", "released"
+  monthlyFee  Float    @default(1.00)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("phone_numbers")
+}
+
+model Backup {
+  id        String   @id @default(cuid())
+  filename  String
+  size      Int
+  createdAt DateTime @default(now())
+
+  @@map("backups")
+}
