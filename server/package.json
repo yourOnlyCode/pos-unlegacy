@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@prisma/client": "^4.12.0",
+    "axios": "^1.13.2",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
