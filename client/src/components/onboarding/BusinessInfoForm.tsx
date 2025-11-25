@@ -9,7 +9,7 @@ import {
   IconButton,
   Alert,
 } from '@mui/material';
-import { Add, Delete } from '@mui/icons-material';
+
 import { BusinessData } from '../../utils/api';
 import { validateBusinessForm, generateBusinessId } from '../../utils/validation';
 
@@ -22,43 +22,30 @@ interface BusinessInfoFormProps {
 export default function BusinessInfoForm({ onSubmit, loading, error }: BusinessInfoFormProps) {
   const [businessName, setBusinessName] = useState('');
   const [email, setEmail] = useState('');
-  const [menuItems, setMenuItems] = useState<Array<{ name: string; price: string }>>([
-    { name: '', price: '' }
-  ]);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
-
-  const addMenuItem = () => {
-    setMenuItems([...menuItems, { name: '', price: '' }]);
-  };
-
-  const removeMenuItem = (index: number) => {
-    if (menuItems.length > 1) {
-      setMenuItems(menuItems.filter((_, i) => i !== index));
-    }
-  };
-
-  const updateMenuItem = (index: number, field: 'name' | 'price', value: string) => {
-    const updated = [...menuItems];
-    updated[index][field] = value;
-    setMenuItems(updated);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Convert menu items to object
-    const menu: Record<string, number> = {};
-    menuItems.forEach(item => {
-      if (item.name.trim() && item.price.trim()) {
-        menu[item.name.trim()] = parseFloat(item.price);
-      }
-    });
+    // Validate passwords match
+    if (password !== confirmPassword) {
+      setValidationErrors(['Passwords do not match']);
+      return;
+    }
+    
+    if (password.length < 6) {
+      setValidationErrors(['Password must be at least 6 characters']);
+      return;
+    }
 
     const businessData: BusinessData = {
       id: generateBusinessId(businessName),
       businessName: businessName.trim(),
       email: email.trim(),
-      menu,
+      password: password,
+      menu: {}, // Empty menu - will be added later in admin dashboard
     };
 
     // Validate form
@@ -118,44 +105,28 @@ export default function BusinessInfoForm({ onSubmit, loading, error }: BusinessI
             helperText="Used for Stripe account setup and notifications"
           />
 
-          <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>
-            Menu Items
-          </Typography>
+          <TextField
+            fullWidth
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            margin="normal"
+            required
+            helperText="Minimum 6 characters"
+          />
 
-          {menuItems.map((item, index) => (
-            <Box key={index} sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
-              <TextField
-                label="Item Name"
-                value={item.name}
-                onChange={(e) => updateMenuItem(index, 'name', e.target.value)}
-                sx={{ flex: 2 }}
-              />
-              <TextField
-                label="Price"
-                type="number"
-                inputProps={{ step: '0.01', min: '0' }}
-                value={item.price}
-                onChange={(e) => updateMenuItem(index, 'price', e.target.value)}
-                sx={{ flex: 1 }}
-              />
-              <IconButton
-                onClick={() => removeMenuItem(index)}
-                disabled={menuItems.length === 1}
-                color="error"
-              >
-                <Delete />
-              </IconButton>
-            </Box>
-          ))}
+          <TextField
+            fullWidth
+            label="Confirm Password"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            margin="normal"
+            required
+          />
 
-          <Button
-            startIcon={<Add />}
-            onClick={addMenuItem}
-            variant="outlined"
-            sx={{ mb: 3 }}
-          >
-            Add Menu Item
-          </Button>
+
 
           <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
             <Button

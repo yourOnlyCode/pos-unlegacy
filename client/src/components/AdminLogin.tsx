@@ -14,48 +14,36 @@ function AdminLogin() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    const bId = businessId.trim();
-    const em = email.trim();
-    const pw = password;
-    if (mode === 'register' && (!bId || !em || !pw)) {
-      setError('All fields required for registration');
+    
+    if (mode === 'register') {
+      // Redirect to onboarding flow for new businesses
+      navigate('/onboarding');
       return;
     }
-    if (mode === 'login' && (!em || !pw)) {
+    
+    // Login flow
+    const em = email.trim();
+    const pw = password;
+    if (!em || !pw) {
       setError('Email and password required');
       return;
     }
+    
     setLoading(true);
     try {
-      if (mode === 'register') {
-        const res = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ businessId: bId, email: em, password: pw })
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          setError(data.error || 'Registration failed');
-          return;
-        }
-        localStorage.setItem('authToken', data.token);
-        localStorage.setItem('businessId', data.businessId);
-        navigate(`/admin/${data.businessId}`);
-      } else {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: em, password: pw })
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          setError(data.error || 'Login failed');
-          return;
-        }
-        localStorage.setItem('authToken', data.token);
-        localStorage.setItem('businessId', data.businessId);
-        navigate(`/admin/${data.businessId}`);
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: em, password: pw })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Login failed');
+        return;
       }
+      localStorage.setItem('authToken', data.token);
+      localStorage.setItem('businessId', data.businessId);
+      navigate(`/admin/${data.businessId}`);
     } catch (err) {
       setError('Network error');
     } finally {
@@ -63,7 +51,6 @@ function AdminLogin() {
     }
   };
 
-  const handleStripeRegister = async () => {
   const handleTestLogin = async () => {
     setError(null);
     setLoading(true);
@@ -81,34 +68,6 @@ function AdminLogin() {
       localStorage.setItem('authToken', data.token);
       localStorage.setItem('businessId', data.businessId);
       if (data.stripeAccountId) localStorage.setItem('stripeAccountId', data.stripeAccountId);
-      navigate(`/admin/${data.businessId}`);
-    } catch (err) {
-      setError('Network error');
-    } finally {
-      setLoading(false);
-    }
-  };
-    setError(null);
-    if (!businessId.trim() || !email.trim() || !password) {
-      setError('Business ID, email, password required');
-      return;
-          <Button variant="contained" color="secondary" onClick={handleTestLogin} disabled={loading}>Test Admin Login</Button>
-    }
-    setLoading(true);
-    try {
-      const res = await fetch('/api/auth/stripe/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ businessId: businessId.trim(), email: email.trim(), password })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || 'Stripe registration failed');
-        return;
-      }
-      localStorage.setItem('authToken', data.token);
-      localStorage.setItem('businessId', data.businessId);
-      localStorage.setItem('stripeAccountId', data.stripeAccountId);
       navigate(`/admin/${data.businessId}`);
     } catch (err) {
       setError('Network error');
@@ -157,32 +116,27 @@ function AdminLogin() {
         </Typography>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         <Box component="form" onSubmit={handleSubmit}>
-          {mode === 'register' && (
-            <TextField
-              label="Business ID"
-              fullWidth
-              value={businessId}
-              onChange={(e) => setBusinessId(e.target.value)}
-              autoFocus
-              margin="normal"
-            />
+          {mode === 'login' && (
+            <>
+              <TextField
+                label="Email"
+                type="email"
+                fullWidth
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                margin="normal"
+                autoFocus
+              />
+              <TextField
+                label="Password"
+                type="password"
+                fullWidth
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                margin="normal"
+              />
+            </>
           )}
-          <TextField
-            label="Email"
-            type="email"
-            fullWidth
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            margin="normal"
-          />
-          <TextField
-            label="Password"
-            type="password"
-            fullWidth
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            margin="normal"
-          />
           <Button
             variant="contained"
             color="primary"
@@ -191,27 +145,24 @@ function AdminLogin() {
             disabled={loading}
             sx={{ mt: 1 }}
           >
-            {loading ? <CircularProgress size={22} /> : (mode === 'login' ? 'Login' : 'Register')}
+            {loading ? <CircularProgress size={22} /> : (mode === 'login' ? 'Login' : 'Start Onboarding')}
           </Button>
         </Box>
         <Box mt={2} display="flex" justifyContent="space-between">
           <Button size="small" onClick={() => setMode(mode === 'login' ? 'register' : 'login')} disabled={loading}>
-            {mode === 'login' ? 'Need an account? Register' : 'Have an account? Login'}
+            {mode === 'login' ? 'New Business? Register' : 'Have an account? Login'}
           </Button>
         </Box>
         <Divider sx={{ my: 3 }} />
-        <Typography variant="subtitle2" gutterBottom>Stripe Integration</Typography>
-        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-          Use these if your business has completed Stripe Connect onboarding.
-        </Typography>
+        <Typography variant="subtitle2" gutterBottom>Development</Typography>
         <Box display="flex" flexDirection="column" gap={1}>
-          <Button variant="outlined" onClick={handleStripeLogin} disabled={loading}>Stripe Login</Button>
-          <Button variant="outlined" onClick={handleStripeRegister} disabled={loading}>Stripe Register</Button>
-        </Box>
-        <Box mt={3}>
-          <Typography variant="caption" color="text.secondary">
-            Haven't onboarded yet? Start at /onboarding to create a business.
-          </Typography>
+          <TextField
+            label="Business ID (optional)"
+            size="small"
+            value={businessId}
+            onChange={(e) => setBusinessId(e.target.value)}
+          />
+          <Button variant="outlined" onClick={handleTestLogin} disabled={loading}>Test Login</Button>
         </Box>
       </Paper>
     </Box>
