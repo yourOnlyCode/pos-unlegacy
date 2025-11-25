@@ -2,6 +2,7 @@ export interface BusinessData {
   id: string;
   businessName: string;
   email: string;
+  password: string;
   menu: Record<string, number>;
 }
 
