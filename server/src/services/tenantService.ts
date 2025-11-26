@@ -9,6 +9,8 @@ interface Tenant {
     currency: string;
     timezone: string;
     autoReply: boolean;
+    checkInTimerMinutes?: number; // Minutes after payment to send check-in SMS
+    checkInEnabled?: boolean;
   };
   posIntegration?: {
     provider: 'toast' | 'square' | 'clover' | 'shopify' | 'none';
@@ -47,7 +49,9 @@ tenants.set('+15551234567', {
   settings: {
     currency: 'USD',
     timezone: 'America/New_York',
-    autoReply: true
+    autoReply: true,
+    checkInEnabled: true,
+    checkInTimerMinutes: 15
   },
   posIntegration: {
     provider: 'none',
@@ -75,7 +79,9 @@ tenants.set('+15559876543', {
   settings: {
     currency: 'USD',
     timezone: 'America/Los_Angeles',
-    autoReply: true
+    autoReply: true,
+    checkInEnabled: true,
+    checkInTimerMinutes: 20
   },
   posIntegration: {
     provider: 'none',

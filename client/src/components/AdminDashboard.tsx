@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import InventoryManagement from './admin/InventoryManagement';
 import OrdersList from './admin/OrdersList';
+import BusinessSettings from './admin/BusinessSettings';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -115,6 +116,7 @@ export default function AdminDashboard() {
         <Tabs value={tabValue} onChange={handleTabChange}>
           <Tab label="Orders" />
           <Tab label="Inventory" />
+          <Tab label="Settings" />
         </Tabs>
       </Box>
 
@@ -128,6 +130,10 @@ export default function AdminDashboard() {
           initialMenu={business.menu}
           onMenuUpdate={fetchBusinessData}
         />
+      </TabPanel>
+
+      <TabPanel value={tabValue} index={2}>
+        <BusinessSettings businessId={business.id} />
       </TabPanel>
     </Container>
   );

@@ -204,4 +204,60 @@ router.put('/business/:businessId/menu', requireAuth, requireBusinessMatch, (req
   res.json({ success: true, menu });
 });
 
+// Get settings for a business
+router.get('/business/:businessId/settings', requireAuth, requireBusinessMatch, (req, res) => {
+  try {
+    const { businessId } = req.params;
+    
+    const allTenants = getAllTenants();
+    const business = allTenants.find(t => t.id === businessId);
+    
+    if (!business) {
+      return res.status(404).json({ error: 'Business not found' });
+    }
+    
+    res.json({
+      businessId,
+      settings: business.settings
+    });
+  } catch (error) {
+    console.error('Error fetching settings:', error);
+    res.status(500).json({ error: 'Failed to fetch settings' });
+  }
+});
+
+// Update settings for a business
+router.put('/business/:businessId/settings', requireAuth, requireBusinessMatch, (req, res) => {
+  try {
+    const { businessId } = req.params;
+    const { settings } = req.body;
+    
+    const allTenants = getAllTenants();
+    const business = allTenants.find(t => t.id === businessId);
+    
+    if (!business) {
+      return res.status(404).json({ error: 'Business not found' });
+    }
+    
+    // Merge settings
+    const updatedSettings = {
+      ...business.settings,
+      ...settings
+    };
+    
+    const success = updateTenant(business.phoneNumber, { settings: updatedSettings });
+    if (!success) {
+      return res.status(500).json({ error: 'Failed to update settings' });
+    }
+    
+    res.json({ 
+      success: true, 
+      settings: updatedSettings 
+    });
+  } catch (error) {
+    console.error('Error updating settings:', error);
+    res.status(500).json({ error: 'Failed to update settings' });
+  }
+});
+
 export default router;
