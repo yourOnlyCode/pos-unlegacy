@@ -1,6 +1,6 @@
 import { distance } from 'fastest-levenshtein';
 
-interface ParsedOrder {
+export interface ParsedOrder {
   items: Array<{ name: string; quantity: number; price: number }>;
   total: number;
   isValid: boolean;
@@ -130,7 +130,6 @@ export function parseOrder(message: string, menu: Record<string, number>): Parse
 
   const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   
-  // Generate error message if parsing still failed
   let errorMessage: string | undefined;
   if (items.length === 0) {
     errorMessage = "I couldn't understand your order. Please use this format:\n\n" +
