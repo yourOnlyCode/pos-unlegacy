@@ -26,7 +26,10 @@ export function updateOrder(orderId: string, updates: any): boolean {
 async function notifyOrderComplete(order: any): Promise<void> {
   try {
     const { sendSMS } = require('./smsService');
-    const message = `Your order from ${order.tenant.businessName} is ready for pickup! Order: ${order.items.map((i: any) => `${i.quantity}x ${i.name}`).join(', ')}`;
+    const message = `Your order from ${order.tenant.businessName} is ready for pickup! Order: ${order.items.map((i: any) => {
+      const mods = i.modifications ? ` (${i.modifications.join(', ')})` : '';
+      return `${i.quantity}x ${i.name}${mods}`;
+    }).join(', ')}`;
     
     await sendSMS(order.businessPhone, order.customerPhone, message);
     console.log(`Order completion SMS sent for order ${order.id}`);

@@ -1,7 +1,7 @@
 import { distance } from 'fastest-levenshtein';
 
 export interface ParsedOrder {
-  items: Array<{ name: string; quantity: number; price: number }>;
+  items: Array<{ name: string; quantity: number; price: number; modifications?: string[] }>;
   total: number;
   isValid: boolean;
   customerName?: string;
@@ -38,34 +38,70 @@ function extractTableNumber(text: string): string | undefined {
   return undefined;
 }
 
-function parseExactMatches(text: string, menu: Record<string, number>): Array<{ name: string; quantity: number; price: number }> {
-  const items: Array<{ name: string; quantity: number; price: number }> = [];
-  const menuItemNames = Object.keys(menu).join('|');
-  const pattern = new RegExp(`(\\d+)\\s+(${menuItemNames})`, 'gi');
-
-  let match;
-  while ((match = pattern.exec(text)) !== null) {
-    const quantity = parseInt(match[1]);
-    const itemName = match[2];
-    const price = menu[itemName];
-    if (price) {
-      items.push({ name: itemName, quantity, price });
+function parseExactMatches(text: string, menu: Record<string, number>): Array<{ name: string; quantity: number; price: number; modifications?: string[] }> {
+  const items: Array<{ name: string; quantity: number; price: number; modifications?: string[] }> = [];
+  
+  // Split by commas to handle individual items with modifications
+  const itemSegments = text.split(',').map(s => s.trim());
+  
+  for (const segment of itemSegments) {
+    const menuItems = Object.keys(menu);
+    let foundItem = null;
+    let quantity = 1;
+    
+    // Find menu item in this segment
+    for (const menuItem of menuItems) {
+      if (segment.includes(menuItem)) {
+        foundItem = menuItem;
+        // Extract quantity
+        const quantityMatch = segment.match(new RegExp(`(\\d+)\\s*${menuItem}`));
+        if (quantityMatch) {
+          quantity = parseInt(quantityMatch[1]);
+        }
+        break;
+      }
+    }
+    
+    if (foundItem) {
+      const modifications = extractModifications(segment, foundItem);
+      items.push({ 
+        name: foundItem, 
+        quantity, 
+        price: menu[foundItem],
+        modifications: modifications.length > 0 ? modifications : undefined
+      });
     }
   }
-
-  Object.keys(menu).forEach(item => {
-    if (text.includes(item) && !items.find(i => i.name === item)) {
-      const quantityMatch = text.match(new RegExp(`(\\d+)\\s*${item}`));
-      const quantity = quantityMatch ? parseInt(quantityMatch[1]) : 1;
-      items.push({ name: item, quantity, price: menu[item] });
-    }
-  });
 
   return items;
 }
 
-function parseFuzzyMatches(text: string, menu: Record<string, number>): { items: Array<{ name: string; quantity: number; price: number }>; hasFuzzy: boolean } {
-  const items: Array<{ name: string; quantity: number; price: number }> = [];
+function extractModifications(segment: string, itemName: string): string[] {
+  const modifications: string[] = [];
+  const modPatterns = [
+    /no\s+(\w+)/gi,
+    /without\s+(\w+)/gi,
+    /extra\s+(\w+)/gi,
+    /add\s+(\w+)/gi,
+    /light\s+(\w+)/gi,
+    /heavy\s+(\w+)/gi,
+    /on\s+the\s+side/gi,
+    /well\s+done/gi,
+    /medium\s+rare/gi
+  ];
+  
+  for (const pattern of modPatterns) {
+    let match;
+    while ((match = pattern.exec(segment)) !== null) {
+      modifications.push(match[0].trim());
+    }
+  }
+  
+  return modifications;
+}
+
+function parseFuzzyMatches(text: string, menu: Record<string, number>): { items: Array<{ name: string; quantity: number; price: number; modifications?: string[] }>; hasFuzzy: boolean } {
+  const items: Array<{ name: string; quantity: number; price: number; modifications?: string[] }> = [];
   const words = text.split(/[\s,]+/);
   const menuItems = Object.keys(menu);
   const wordNumbers: Record<string, number> = {
@@ -105,7 +141,13 @@ function parseFuzzyMatches(text: string, menu: Record<string, number>): { items:
         }
       }
       
-      items.push({ name: bestMatch, quantity, price: menu[bestMatch] });
+      const modifications = extractModifications(text, bestMatch);
+      items.push({ 
+        name: bestMatch, 
+        quantity, 
+        price: menu[bestMatch],
+        modifications: modifications.length > 0 ? modifications : undefined
+      });
     }
   }
   
