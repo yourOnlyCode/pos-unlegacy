@@ -174,7 +174,7 @@ router.get('/business/:businessId/orders', requireAuth, requireBusinessMatch, (r
       orders: businessOrders,
       totalOrders: businessOrders.length,
       totalRevenue: businessOrders
-        .filter((o: any) => o.status === 'paid')
+        .filter((o: any) => o.status === 'paid' || o.status === 'complete')
         .reduce((sum: number, o: any) => sum + o.total, 0)
     });
   } catch (error) {
