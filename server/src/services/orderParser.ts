@@ -78,6 +78,16 @@ function parseExactMatches(text: string, menu: Record<string, number>): Array<{ 
 
 function extractModifications(segment: string, itemName: string): string[] {
   const modifications: string[] = [];
+  
+  // Find item position to extract modifications near it
+  const itemIndex = segment.toLowerCase().indexOf(itemName.toLowerCase());
+  if (itemIndex === -1) return modifications;
+  
+  // Look for modifications in a window around the item
+  const beforeItem = segment.substring(0, itemIndex);
+  const afterItem = segment.substring(itemIndex + itemName.length);
+  const context = beforeItem + ' ' + afterItem;
+  
   const modPatterns = [
     /no\s+(\w+)/gi,
     /without\s+(\w+)/gi,
@@ -92,7 +102,7 @@ function extractModifications(segment: string, itemName: string): string[] {
   
   for (const pattern of modPatterns) {
     let match;
-    while ((match = pattern.exec(segment)) !== null) {
+    while ((match = pattern.exec(context)) !== null) {
       modifications.push(match[0].trim());
     }
   }
@@ -141,7 +151,8 @@ function parseFuzzyMatches(text: string, menu: Record<string, number>): { items:
         }
       }
       
-      const modifications = extractModifications(text, bestMatch);
+      const wordSegment = words.slice(Math.max(0, wordIndex - 3), wordIndex + 2).join(' ');
+      const modifications = extractModifications(wordSegment, bestMatch);
       items.push({ 
         name: bestMatch, 
         quantity, 
