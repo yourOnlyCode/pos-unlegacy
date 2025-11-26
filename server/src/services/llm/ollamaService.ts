@@ -24,7 +24,7 @@ export class OllamaService {
 
   async parseOrder(message: string, menu: Record<string, number>): Promise<LLMParseResult> {
     const menuItems = Object.keys(menu).join(', ');
-
+    
     const prompt = `Parse this restaurant order SMS and extract information in JSON format:
 
 Message: "${message}"
@@ -72,6 +72,24 @@ Respond with JSON only:
         isValid: false,
       };
     }
+  }
+
+  private fallbackParse(message: string, menu: Record<string, number>): LLMParseResult {
+    const { parseOrder } = require('../orderParser');
+    const result = parseOrder(message, menu);
+    
+    return {
+      customerName: result.customerName,
+      tableNumber: result.tableNumber,
+      items: result.items.map((item: any) => ({
+        name: item.name,
+        quantity: item.quantity,
+        confidence: 0.7
+      })),
+      confidence: 0.7,
+      rawText: message,
+      isValid: result.items && result.items.length > 0
+    };
   }
 
   async isHealthy(): Promise<boolean> {
