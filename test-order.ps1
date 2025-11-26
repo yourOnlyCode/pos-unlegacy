@@ -33,6 +33,7 @@ if (-not $response.success) {
 # Display parsed order
 Write-Host "`n=== ORDER PARSED ===" -ForegroundColor Cyan
 Write-Host "Customer: $($response.parsedOrder.customerName)" -ForegroundColor Yellow
+Write-Host "Table: $($response.parsedOrder.tableNumber)" -ForegroundColor Yellow
 Write-Host "Items:" -ForegroundColor White
 $response.parsedOrder.items | ForEach-Object {
     Write-Host "  - $($_.quantity)x $($_.name) @ `$$($_.price) = `$$($_.price * $_.quantity)" -ForegroundColor White

@@ -3,6 +3,12 @@ import twilio from 'twilio';
 import { parseOrder } from '../services/orderParser';
 import { getTenantByPhone, checkInventory } from '../services/tenantService';
 import { getOrder, createOrder, updateOrder } from '../services/orderService';
+import { 
+  getConversation, 
+  createConversation, 
+  updateConversation, 
+  completeConversation 
+} from '../services/conversationService';
 
 const router = express.Router();
 const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
@@ -23,6 +29,15 @@ router.post('/webhook', (req, res) => {
     return res.status(200).send('OK');
   }
 
+  // Check if customer is in a conversation
+  const existingConversation = getConversation(customerPhone);
+  
+  if (existingConversation) {
+    // Handle conversation flow
+    handleConversationStep(existingConversation, message, customerPhone, tenant, res);
+    return;
+  }
+
   // Parse the order with tenant's menu
   const parsedOrder = parseOrder(message, tenant.menu);
 
@@ -34,6 +49,67 @@ router.post('/webhook', (req, res) => {
     return res.status(200).send('OK');
   }
 
+  // Check if name is missing (table is optional)
+  if (!parsedOrder.customerName) {
+    // Start conversation to collect name
+    createConversation(customerPhone, businessPhone, 'awaiting_info', message, parsedOrder);
+    sendSMS(customerPhone, "What's your name?");
+    return res.status(200).send('OK');
+  }
+
+  // Process complete order
+  processCompleteOrder(parsedOrder, customerPhone, businessPhone, tenant, res);
+});
+
+// Handle multi-step conversation
+function handleConversationStep(conversation: any, message: string, customerPhone: string, tenant: any, res: any) {
+  if (conversation.stage === 'awaiting_info') {
+    // Try to extract both name and table from the response
+    const { parsedOrder } = conversation;
+    let customerName = parsedOrder.customerName;
+    let tableNumber = parsedOrder.tableNumber;
+    
+    // Parse the response for name and table
+    // Look for patterns like "John Smith, table 5" or "Sarah, 12"
+    const commaMatch = message.match(/^([^,]+),\s*(?:table\s*)?([\d]+)/i);
+    if (commaMatch) {
+      if (!customerName) customerName = commaMatch[1].trim();
+      if (!tableNumber) tableNumber = commaMatch[2].trim();
+    } else {
+      // Try to extract table number if present
+      const tableMatch = message.match(/(?:table\s*|#)?(\d+)/i);
+      if (tableMatch && !tableNumber) {
+        tableNumber = tableMatch[1];
+        // Everything else is the name
+        if (!customerName) {
+          customerName = message.replace(/(?:table\s*|#)?\d+/i, '').trim();
+        }
+      } else if (!customerName) {
+        // No table number found, treat as name only
+        customerName = message.trim();
+      }
+    }
+    
+    // Update conversation
+    conversation.parsedOrder.customerName = customerName;
+    conversation.parsedOrder.tableNumber = tableNumber || 'N/A';
+    
+    // Process the complete order
+    processCompleteOrder(
+      conversation.parsedOrder,
+      customerPhone,
+      conversation.businessPhone,
+      tenant,
+      res
+    );
+    
+    // Clear conversation
+    completeConversation(customerPhone);
+  }
+}
+
+// Process a complete order with all information
+function processCompleteOrder(parsedOrder: any, customerPhone: string, businessPhone: string, tenant: any, res: any) {
   // Check inventory for all items
   const inventoryIssues: string[] = [];
   const stockWarnings: string[] = [];
@@ -88,7 +164,7 @@ router.post('/webhook', (req, res) => {
 
   // Format order summary
   const itemsList = parsedOrder.items
-    .map(item => `${item.quantity}x ${item.name} ($${(item.price * item.quantity).toFixed(2)})`)
+    .map((item: any) => `${item.quantity}x ${item.name} ($${(item.price * item.quantity).toFixed(2)})`)
     .join('\n');
 
   let response;
@@ -98,10 +174,12 @@ router.post('/webhook', (req, res) => {
     // Add stock warnings to message if any
     const stockInfo = stockWarnings.length > 0 ? '\n\n' + stockWarnings.join('\n') + '\n' : '';
     
+    const customerInfo = `👤 ${parsedOrder.customerName} | Table #${parsedOrder.tableNumber}\n\n`;
+    
     // Add verification note if fuzzy matching was used
     const verificationNote = parsedOrder.hasFuzzyMatches 
-      ? `✓ I understood your order as:\n\n${itemsList}\n\nTotal: $${parsedOrder.total.toFixed(2)}${stockInfo}\n\nIf this looks correct, pay now:\n${paymentLink}\n\n⚠️ Order will only be sent to ${tenant.businessName} after payment is confirmed.`
-      : `Order ready for payment:\n\n${itemsList}\n\nTotal: $${parsedOrder.total.toFixed(2)}${stockInfo}\n\nPay now:\n${paymentLink}\n\n⚠️ Order will only be sent to ${tenant.businessName} after payment is confirmed.`;
+      ? `✓ I understood your order as:\n\n${customerInfo}${itemsList}\n\nTotal: $${parsedOrder.total.toFixed(2)}${stockInfo}\n\nIf this looks correct, pay now:\n${paymentLink}\n\n⚠️ Order will only be sent to ${tenant.businessName} after payment is confirmed.`
+      : `Order ready for payment:\n\n${customerInfo}${itemsList}\n\nTotal: $${parsedOrder.total.toFixed(2)}${stockInfo}\n\nPay now:\n${paymentLink}\n\n⚠️ Order will only be sent to ${tenant.businessName} after payment is confirmed.`;
     
     response = verificationNote;
   }
@@ -109,7 +187,7 @@ router.post('/webhook', (req, res) => {
   sendSMS(customerPhone, response);
   
   res.status(200).send('OK');
-});
+}
 
 // Handle menu requests
 router.post('/webhook', (req, res) => {
