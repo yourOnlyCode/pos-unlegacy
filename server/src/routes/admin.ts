@@ -25,13 +25,13 @@ router.get('/tenants/:phone', (req, res) => {
 // Add new tenant with auto-assigned phone number
 router.post('/tenants', async (req, res) => {
   try {
-    const { id, businessName, menu, settings, email, password } = req.body;
+    const { id, businessName, menu, settings, email, adminPassword, operationsPassword } = req.body;
     
     console.log('Creating tenant with data:', { id, businessName, email, menuItemCount: Object.keys(menu || {}).length });
     
-    if (!id || !businessName || !email || !password) {
-      console.error('Missing required fields:', { id: !!id, businessName: !!businessName, email: !!email, password: !!password });
-      return res.status(400).json({ error: 'Missing required fields (id, businessName, email, password)' });
+    if (!id || !businessName || !email || !adminPassword || !operationsPassword) {
+      console.error('Missing required fields:', { id: !!id, businessName: !!businessName, email: !!email, adminPassword: !!adminPassword, operationsPassword: !!operationsPassword });
+      return res.status(400).json({ error: 'Missing required fields (id, businessName, email, adminPassword, operationsPassword)' });
     }
 
     // Auto-assign phone number from pool
@@ -68,13 +68,16 @@ router.post('/tenants', async (req, res) => {
     addTenant(tenant);
     console.log('Tenant added successfully:', id);
     
-    // Auto-create user account for the business
+    // Auto-create admin and operations user accounts
     const { createUser } = require('../services/userService');
     try {
-      await createUser(id, email, password);
-      console.log('User account created for:', email);
+      await createUser(id, email, adminPassword);
+      console.log('Admin account created for:', email);
+      
+      await createUser(id, `ops-${email}`, operationsPassword);
+      console.log('Operations account created for:', `ops-${email}`);
     } catch (error) {
-      console.error('Failed to create user account:', error);
+      console.error('Failed to create user accounts:', error);
     }
     
     // Return tenant info with next step for Stripe Connect
