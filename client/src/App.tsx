@@ -8,6 +8,8 @@ import PaymentPage from './components/PaymentPage';
 import OnboardingFlow from './components/onboarding/OnboardingFlow';
 import ConnectSuccess from './components/ConnectSuccess';
 import AdminDashboard from './components/AdminDashboard';
+import OperationsDashboard from './components/OperationsDashboard';
+import OperationsLogin from './components/OperationsLogin';
 
 const theme = createTheme({
   palette: {
@@ -30,6 +32,8 @@ function App() {
             <Route path="/onboarding" element={<OnboardingFlow />} />
             <Route path="/connect/success" element={<ConnectSuccess />} />
             <Route path="/admin/:businessId" element={<AdminDashboard />} />
+            <Route path="/operations-login" element={<OperationsLogin />} />
+            <Route path="/operations/:businessId" element={<OperationsDashboard />} />
           </Routes>
         </Container>
       </Router>

@@ -86,7 +86,12 @@ export default function PaymentPage() {
       // Simulate payment processing (in production, use Stripe Elements)
       setTimeout(async () => {
         try {
-          // In production, Stripe webhook will handle this automatically
+          // Mark order as paid
+          await fetch(`/api/sms/order/${order.id}/paid`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
           setSuccess(true);
         } catch (err) {
           setError('Payment failed');

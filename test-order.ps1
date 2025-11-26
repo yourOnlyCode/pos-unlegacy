@@ -3,7 +3,7 @@
 # Test configuration
 $businessPhone = "+15551234567"  # Downtown Cafe phone
 $customerPhone = "+19998887777"
-$orderMessage = "Sarah, 2 coffee no cream, 1 sandwich"
+$orderMessage = "Sarah, 2 coffee no cream, 1 sandwich extra mayo"
 
 Write-Host "`n=== TESTING ORDER ===" -ForegroundColor Cyan
 Write-Host "Business Phone: $businessPhone" -ForegroundColor Yellow

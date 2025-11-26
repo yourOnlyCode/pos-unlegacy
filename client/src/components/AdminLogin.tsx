@@ -152,6 +152,9 @@ function AdminLogin() {
           <Button size="small" onClick={() => setMode(mode === 'login' ? 'register' : 'login')} disabled={loading}>
             {mode === 'login' ? 'New Business? Register' : 'Have an account? Login'}
           </Button>
+          <Button size="small" onClick={() => navigate('/operations-login')} disabled={loading}>
+            Operations Login
+          </Button>
         </Box>
         <Divider sx={{ my: 3 }} />
         <Typography variant="subtitle2" gutterBottom>Development</Typography>
