@@ -16,7 +16,7 @@ import {
 
 interface Order {
   id: string;
-  items: Array<{ name: string; quantity: number; price: number }>;
+  items: Array<{ name: string; quantity: number; price: number; modifications?: string[] }>;
   total: number;
   status: string;
   customerPhone: string;
@@ -61,7 +61,10 @@ export default function PaymentPage() {
     try {
       // Format order details for business notification
       const orderDetails = order.items
-        .map(item => `${item.quantity}x ${item.name} ($${(item.price * item.quantity).toFixed(2)})`)
+        .map(item => {
+          const mods = item.modifications ? ` (${item.modifications.join(', ')})` : '';
+          return `${item.quantity}x ${item.name}${mods} ($${(item.price * item.quantity).toFixed(2)})`;
+        })
         .join('\n');
 
       // Create payment intent with order metadata
@@ -150,12 +153,21 @@ export default function PaymentPage() {
           
           <List>
             {order.items.map((item, index) => (
-              <ListItem key={index} sx={{ px: 0 }}>
-                <ListItemText
-                  primary={`${item.quantity}x ${item.name}`}
-                  secondary={`$${(item.price * item.quantity).toFixed(2)}`}
-                />
-              </ListItem>
+              <Box key={index}>
+                <ListItem sx={{ px: 0 }}>
+                  <ListItemText
+                    primary={`${item.quantity}x ${item.name}`}
+                    secondary={`$${(item.price * item.quantity).toFixed(2)}`}
+                  />
+                </ListItem>
+                {item.modifications && item.modifications.length > 0 && (
+                  <Box sx={{ ml: 2, mb: 1, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Notes: {item.modifications.join(', ')}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
             ))}
           </List>
 
