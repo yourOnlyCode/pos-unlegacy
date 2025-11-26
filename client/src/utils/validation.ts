@@ -25,12 +25,9 @@ export const validateBusinessForm = (data: {
     errors.push({ field: 'email', message: 'Please enter a valid email address' });
   }
 
-  // Menu validation
+  // Menu validation (optional)
   const menuItems = Object.keys(data.menu);
-  if (menuItems.length === 0) {
-    errors.push({ field: 'menu', message: 'At least one menu item is required' });
-  }
-
+  
   menuItems.forEach(item => {
     if (!item.trim()) {
       errors.push({ field: 'menu', message: 'Menu item names cannot be empty' });

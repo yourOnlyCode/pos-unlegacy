@@ -25,13 +25,13 @@ router.get('/tenants/:phone', (req, res) => {
 // Add new tenant with auto-assigned phone number
 router.post('/tenants', async (req, res) => {
   try {
-    const { id, businessName, menu, settings, email } = req.body;
+    const { id, businessName, menu, settings, email, password } = req.body;
     
     console.log('Creating tenant with data:', { id, businessName, email, menuItemCount: Object.keys(menu || {}).length });
     
-    if (!id || !businessName || !menu || !email) {
-      console.error('Missing required fields:', { id: !!id, businessName: !!businessName, menu: !!menu, email: !!email });
-      return res.status(400).json({ error: 'Missing required fields (id, businessName, menu, email)' });
+    if (!id || !businessName || !email || !password) {
+      console.error('Missing required fields:', { id: !!id, businessName: !!businessName, email: !!email, password: !!password });
+      return res.status(400).json({ error: 'Missing required fields (id, businessName, email, password)' });
     }
 
     // Auto-assign phone number from pool
@@ -46,15 +46,17 @@ router.post('/tenants', async (req, res) => {
 
     // Initialize inventory with default stock levels for each menu item
     const inventory: Record<string, number> = {};
-    Object.keys(menu).forEach(itemName => {
-      inventory[itemName] = 50; // Default stock of 50 for each item
-    });
+    if (menu) {
+      Object.keys(menu).forEach(itemName => {
+        inventory[itemName] = 50; // Default stock of 50 for each item
+      });
+    }
 
     const tenant = {
       id,
       businessName,
       phoneNumber,
-      menu,
+      menu: menu || {},
       inventory,
       settings: settings || {
         currency: 'USD',
@@ -65,6 +67,15 @@ router.post('/tenants', async (req, res) => {
 
     addTenant(tenant);
     console.log('Tenant added successfully:', id);
+    
+    // Auto-create user account for the business
+    const { createUser } = require('../services/userService');
+    try {
+      await createUser(id, email, password);
+      console.log('User account created for:', email);
+    } catch (error) {
+      console.error('Failed to create user account:', error);
+    }
     
     // Return tenant info with next step for Stripe Connect
     res.status(201).json({

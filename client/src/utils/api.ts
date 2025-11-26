@@ -3,7 +3,7 @@ export interface BusinessData {
   businessName: string;
   email: string;
   password: string;
-  menu: Record<string, number>;
+  menu?: Record<string, number>;
 }
 
 export interface OnboardingResponse {
