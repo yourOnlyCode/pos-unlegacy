@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   Box,
@@ -14,8 +14,10 @@ import {
   Paper,
   Chip,
   Button,
-  Alert
+  Alert,
+  IconButton
 } from '@mui/material';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 interface OrderItem {
   name: string;
@@ -35,11 +37,19 @@ interface Order {
   tableNumber?: string;
 }
 
+interface SwipeState {
+  orderId: string;
+  startX: number;
+  currentX: number;
+  isSwiping: boolean;
+}
+
 export default function OperationsDashboard() {
   const { businessId } = useParams<{ businessId: string }>();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [swipeState, setSwipeState] = useState<SwipeState | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -103,6 +113,54 @@ export default function OperationsDashboard() {
     }
   };
 
+  const handleTouchStart = (orderId: string, e: React.TouchEvent) => {
+    setSwipeState({
+      orderId,
+      startX: e.touches[0].clientX,
+      currentX: e.touches[0].clientX,
+      isSwiping: true
+    });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!swipeState || !swipeState.isSwiping) return;
+    
+    setSwipeState({
+      ...swipeState,
+      currentX: e.touches[0].clientX
+    });
+  };
+
+  const handleTouchEnd = (order: Order) => {
+    if (!swipeState || !swipeState.isSwiping) return;
+
+    const swipeDistance = swipeState.startX - swipeState.currentX;
+    const threshold = 100; // Minimum swipe distance in pixels
+
+    if (swipeDistance > threshold) {
+      // Swiped left - advance to next status
+      if (order.status === 'paid') {
+        updateOrderStatus(order.id, 'preparing');
+      } else if (order.status === 'preparing') {
+        updateOrderStatus(order.id, 'complete');
+      }
+    }
+
+    setSwipeState(null);
+  };
+
+  const getSwipeOffset = (orderId: string) => {
+    if (!swipeState || swipeState.orderId !== orderId) return 0;
+    const offset = swipeState.startX - swipeState.currentX;
+    return Math.max(0, Math.min(offset, 150)); // Clamp between 0 and 150px
+  };
+
+  const getNextAction = (status: string) => {
+    if (status === 'paid') return { label: 'Start Preparing', color: 'primary' };
+    if (status === 'preparing') return { label: 'Mark Complete', color: 'success' };
+    return null;
+  };
+
   if (loading) return <Typography>Loading orders...</Typography>;
   if (error) return <Alert severity="error">{error}</Alert>;
 
@@ -123,32 +181,87 @@ export default function OperationsDashboard() {
       {activeOrders.length === 0 ? (
         <Alert severity="info">No active orders</Alert>
       ) : (
-        activeOrders.map((order) => (
-          <Card key={order.id} sx={{ mb: 3 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Box>
-                  <Typography variant="h6">
-                    Order #{order.id}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {order.customerName || 'Customer'} • {order.customerPhone}
-                    {order.tableNumber && ` • Table ${order.tableNumber}`}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {new Date(order.createdAt).toLocaleTimeString()}
-                  </Typography>
+        activeOrders.map((order) => {
+          const nextAction = getNextAction(order.status);
+          const swipeOffset = getSwipeOffset(order.id);
+          
+          return (
+            <Box 
+              key={order.id} 
+              sx={{ 
+                position: 'relative', 
+                mb: 3,
+                overflow: 'hidden',
+                borderRadius: 1
+              }}
+            >
+              {/* Background action indicator */}
+              {nextAction && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    right: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: 150,
+                    bgcolor: nextAction.color === 'primary' ? 'primary.main' : 'success.main',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    opacity: Math.min(swipeOffset / 100, 1),
+                    transition: swipeState?.orderId === order.id ? 'none' : 'opacity 0.3s'
+                  }}
+                >
+                  <Box sx={{ textAlign: 'center' }}>
+                    <ChevronRightIcon sx={{ fontSize: 40 }} />
+                    <Typography variant="caption" sx={{ display: 'block' }}>
+                      {nextAction.label}
+                    </Typography>
+                  </Box>
                 </Box>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                  <Chip 
-                    label={order.status.replace('_', ' ').toUpperCase()} 
-                    color={getStatusColor(order.status)}
-                  />
-                  <Typography variant="h6" color="primary">
-                    ${order.total.toFixed(2)}
-                  </Typography>
-                </Box>
-              </Box>
+              )}
+
+              {/* Swipeable card */}
+              <Card 
+                sx={{ 
+                  transform: `translateX(-${swipeOffset}px)`,
+                  transition: swipeState?.orderId === order.id ? 'none' : 'transform 0.3s',
+                  touchAction: 'pan-y',
+                  cursor: 'grab',
+                  '&:active': {
+                    cursor: 'grabbing'
+                  }
+                }}
+                onTouchStart={(e) => handleTouchStart(order.id, e)}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={() => handleTouchEnd(order)}
+              >
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Box>
+                      <Typography variant="h6">
+                        Order #{order.id}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {order.customerName || 'Customer'} • {order.customerPhone}
+                        {order.tableNumber && ` • Table ${order.tableNumber}`}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {new Date(order.createdAt).toLocaleTimeString()}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                      <Chip 
+                        label={order.status.replace('_', ' ').toUpperCase()} 
+                        color={getStatusColor(order.status)}
+                      />
+                      <Typography variant="h6" color="primary">
+                        ${order.total.toFixed(2)}
+                      </Typography>
+                    </Box>
+                  </Box>
 
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
@@ -199,29 +312,33 @@ export default function OperationsDashboard() {
                 </Table>
               </TableContainer>
 
-              <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
-                {order.status === 'paid' && (
-                  <Button 
-                    variant="contained" 
-                    color="primary"
-                    onClick={() => updateOrderStatus(order.id, 'preparing')}
-                  >
-                    Start Preparing
-                  </Button>
-                )}
-                {order.status === 'preparing' && (
-                  <Button 
-                    variant="contained" 
-                    color="success"
-                    onClick={() => updateOrderStatus(order.id, 'complete')}
-                  >
-                    Mark Complete
-                  </Button>
-                )}
-              </Box>
-            </CardContent>
-          </Card>
-        ))
+                  <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                    {order.status === 'paid' && (
+                      <Button 
+                        variant="contained" 
+                        color="primary"
+                        onClick={() => updateOrderStatus(order.id, 'preparing')}
+                        fullWidth
+                      >
+                        Start Preparing
+                      </Button>
+                    )}
+                    {order.status === 'preparing' && (
+                      <Button 
+                        variant="contained" 
+                        color="success"
+                        onClick={() => updateOrderStatus(order.id, 'complete')}
+                        fullWidth
+                      >
+                        Mark Complete
+                      </Button>
+                    )}
+                  </Box>
+                </CardContent>
+              </Card>
+            </Box>
+          );
+        })
       )}
     </Box>
   );
