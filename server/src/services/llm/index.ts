@@ -1,5 +1,4 @@
 import { OllamaService } from './ollamaService';
-import { OpenAIService } from './openaiService';
 
 export interface LLMParseResult {
   customerName?: string;
@@ -15,19 +14,14 @@ export interface LLMParseResult {
 }
 
 export class HybridOrderParser {
-  private llmService?: OllamaService | OpenAIService;
+  private llmService?: OllamaService;
 
   constructor() {
-    // Initialize LLM service if available (optional)
+    // Initialize Ollama service if available
     if (process.env.OLLAMA_ENABLED === 'true') {
       this.llmService = new OllamaService(
         process.env.OLLAMA_URL || 'http://localhost:11434',
-        process.env.OLLAMA_MODEL || 'llama3.2:3b'
-      );
-    } else if (process.env.OPENAI_API_KEY) {
-      this.llmService = new OpenAIService(
-        process.env.OPENAI_API_KEY,
-        process.env.OPENAI_MODEL || 'gpt-4o-mini'
+        process.env.OLLAMA_MODEL || 'llama3.2:1b'
       );
     }
   }
@@ -84,11 +78,8 @@ export class HybridOrderParser {
 
   async isHealthy(): Promise<boolean> {
     if (!this.llmService) return true; // Basic parser always works
-    if (this.llmService instanceof OllamaService) {
-      return this.llmService.isHealthy();
-    }
-    return true;
+    return this.llmService.isHealthy();
   }
 }
 
-export { OllamaService, OpenAIService };
+export { OllamaService };
