@@ -133,13 +133,22 @@ router.get('/order/:id', (req, res) => {
 });
 
 // Update order status after payment
-router.post('/order/:id/paid', (req, res) => {
+router.post('/order/:id/paid', async (req, res) => {
   const order = getOrder(req.params.id);
   if (!order) {
     return res.status(404).json({ error: 'Order not found' });
   }
   
   updateOrder(req.params.id, { status: 'paid' });
+  
+  // Forward to POS system if configured
+  const { forwardOrderToPOS } = require('../services/posIntegrationService');
+  if (order.tenant?.posIntegration) {
+    const success = await forwardOrderToPOS(order, order.tenant.posIntegration);
+    if (success) {
+      console.log(`Order ${order.id} forwarded to ${order.tenant.posIntegration.provider}`);
+    }
+  }
   
   // Send confirmation SMS
   sendSMS(order.customerPhone, 
