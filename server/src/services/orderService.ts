@@ -12,8 +12,27 @@ export function updateOrder(orderId: string, updates: any): boolean {
   const order = orders.get(orderId);
   if (!order) return false;
   
-  orders.set(orderId, { ...order, ...updates });
+  const updatedOrder = { ...order, ...updates };
+  orders.set(orderId, updatedOrder);
+  
+  // Send SMS notification if order is marked complete
+  if (updates.status === 'complete' && order.status !== 'complete') {
+    notifyOrderComplete(updatedOrder);
+  }
+  
   return true;
+}
+
+async function notifyOrderComplete(order: any): Promise<void> {
+  try {
+    const { sendSMS } = require('./smsService');
+    const message = `Your order from ${order.tenant.businessName} is ready for pickup! Order: ${order.items.map((i: any) => `${i.quantity}x ${i.name}`).join(', ')}`;
+    
+    await sendSMS(order.businessPhone, order.customerPhone, message);
+    console.log(`Order completion SMS sent for order ${order.id}`);
+  } catch (error) {
+    console.error('Failed to send order completion SMS:', error);
+  }
 }
 
 export function getAllOrders(): any[] {
