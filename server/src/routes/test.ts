@@ -98,7 +98,10 @@ router.post('/sms', (req, res) => {
 
   // Format response
   const itemsList = parsedOrder.items
-    .map(item => `${item.quantity}x ${item.name} ($${(item.price * item.quantity).toFixed(2)})`)
+    .map(item => {
+      const mods = item.modifications ? ` (${item.modifications.join(', ')})` : '';
+      return `${item.quantity}x ${item.name}${mods} ($${(item.price * item.quantity).toFixed(2)})`;
+    })
     .join('\n');
 
   const paymentLink = `http://localhost:3000/pay/${orderId}`;
