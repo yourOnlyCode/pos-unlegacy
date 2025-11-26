@@ -10,6 +10,13 @@ interface Tenant {
     timezone: string;
     autoReply: boolean;
   };
+  posIntegration?: {
+    provider: 'toast' | 'square' | 'clover' | 'shopify' | 'none';
+    apiKey?: string;
+    locationId?: string;
+    webhookUrl?: string;
+    enabled: boolean;
+  };
 }
 
 const tenants = new Map<string, Tenant>();
@@ -41,6 +48,10 @@ tenants.set('+15551234567', {
     currency: 'USD',
     timezone: 'America/New_York',
     autoReply: true
+  },
+  posIntegration: {
+    provider: 'none',
+    enabled: false
   }
 });
 
@@ -65,6 +76,10 @@ tenants.set('+15559876543', {
     currency: 'USD',
     timezone: 'America/Los_Angeles',
     autoReply: true
+  },
+  posIntegration: {
+    provider: 'none',
+    enabled: false
   }
 });
 
