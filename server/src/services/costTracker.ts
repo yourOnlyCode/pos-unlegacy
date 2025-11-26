@@ -1,3 +1,5 @@
+// For us to track the costs according to the number of tenants we have
+
 interface CostSummary {
   totalNumbers: number;
   monthlyCost: number;
@@ -17,7 +19,7 @@ export function calculateCosts(): CostSummary {
     number: string;
     purchasedAt: Date;
   }> = getPurchasedNumbers();
-  
+
   const MONTHLY_COST_PER_NUMBER = 1.00;
   const totalNumbers = numbers.length;
   const monthlyCost = totalNumbers * MONTHLY_COST_PER_NUMBER;
