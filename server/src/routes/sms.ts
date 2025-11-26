@@ -29,6 +29,19 @@ router.post('/webhook', (req, res) => {
     return res.status(200).send('OK');
   }
 
+  // Check if this is a check-in response
+  const { handleCheckInResponse, isPendingCheckIn } = require('../services/checkInService');
+  if (isPendingCheckIn(customerPhone)) {
+    const handled = handleCheckInResponse(customerPhone, message);
+    if (handled) {
+      const responseMsg = message.toLowerCase().includes('yes') || message.toLowerCase().includes('good') || message.toLowerCase().includes('received')
+        ? "Great! Thanks for confirming. We hope you enjoyed your order!"
+        : "Thanks for your response. We'll look into this right away.";
+      sendSMS(customerPhone, responseMsg);
+      return res.status(200).send('OK');
+    }
+  }
+
   // Check if customer is in a conversation
   const existingConversation = getConversation(customerPhone);
   

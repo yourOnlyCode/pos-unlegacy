@@ -39,6 +39,14 @@ router.post('/stripe', express.raw({ type: 'application/json' }), (req, res) => 
     const tableNumber = paymentIntent.metadata.tableNumber;
 
     if (orderId && businessPhone && customerPhone && orderDetails) {
+      // Update order status to paid
+      const { updateOrder } = require('../services/orderService');
+      updateOrder(orderId, { status: 'paid' });
+
+      // Schedule check-in timer
+      const { scheduleCheckIn } = require('../services/checkInService');
+      scheduleCheckIn(orderId);
+
       // Notify business of paid order
       notifyBusinessOfOrder(businessPhone, orderId, orderDetails, customerPhone, customerName, tableNumber);
       
