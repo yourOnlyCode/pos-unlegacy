@@ -22,21 +22,28 @@ interface BusinessInfoFormProps {
 export default function BusinessInfoForm({ onSubmit, loading, error }: BusinessInfoFormProps) {
   const [businessName, setBusinessName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [confirmAdminPassword, setConfirmAdminPassword] = useState('');
+  const [operationsPassword, setOperationsPassword] = useState('');
+  const [confirmOperationsPassword, setConfirmOperationsPassword] = useState('');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate passwords match
-    if (password !== confirmPassword) {
-      setValidationErrors(['Passwords do not match']);
+    if (adminPassword !== confirmAdminPassword) {
+      setValidationErrors(['Admin passwords do not match']);
       return;
     }
     
-    if (password.length < 6) {
-      setValidationErrors(['Password must be at least 6 characters']);
+    if (operationsPassword !== confirmOperationsPassword) {
+      setValidationErrors(['Operations passwords do not match']);
+      return;
+    }
+    
+    if (adminPassword.length < 6 || operationsPassword.length < 6) {
+      setValidationErrors(['Passwords must be at least 6 characters']);
       return;
     }
 
@@ -44,7 +51,8 @@ export default function BusinessInfoForm({ onSubmit, loading, error }: BusinessI
       id: generateBusinessId(businessName),
       businessName: businessName.trim(),
       email: email.trim(),
-      password: password,
+      adminPassword: adminPassword,
+      operationsPassword: operationsPassword,
       menu: {}, // Empty menu - will be added later in admin dashboard
     };
 
@@ -105,23 +113,52 @@ export default function BusinessInfoForm({ onSubmit, loading, error }: BusinessI
             helperText="Used for Stripe account setup and notifications"
           />
 
+          <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>
+            Admin Login
+          </Typography>
+          
           <TextField
             fullWidth
-            label="Password"
+            label="Admin Password"
             type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={adminPassword}
+            onChange={(e) => setAdminPassword(e.target.value)}
             margin="normal"
             required
-            helperText="Minimum 6 characters"
+            helperText="For business management dashboard"
           />
 
           <TextField
             fullWidth
-            label="Confirm Password"
+            label="Confirm Admin Password"
             type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            value={confirmAdminPassword}
+            onChange={(e) => setConfirmAdminPassword(e.target.value)}
+            margin="normal"
+            required
+          />
+
+          <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>
+            Operations Login
+          </Typography>
+          
+          <TextField
+            fullWidth
+            label="Operations Password"
+            type="password"
+            value={operationsPassword}
+            onChange={(e) => setOperationsPassword(e.target.value)}
+            margin="normal"
+            required
+            helperText="For kitchen operations dashboard"
+          />
+
+          <TextField
+            fullWidth
+            label="Confirm Operations Password"
+            type="password"
+            value={confirmOperationsPassword}
+            onChange={(e) => setConfirmOperationsPassword(e.target.value)}
             margin="normal"
             required
           />
