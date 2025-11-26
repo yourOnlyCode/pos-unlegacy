@@ -1,9 +1,9 @@
-# Hardcoded test script for pizza order
+# Hardcoded test script for cafe order
 
 # Test configuration
-$businessPhone = "+15559876543"  # Pizza Palace phone
+$businessPhone = "+15551234567"  # Downtown Cafe phone
 $customerPhone = "+19998887777"
-$orderMessage = "John, 2 pizza, 1 wings"
+$orderMessage = "Sarah, 2 coffee, 1 sandwich"
 
 Write-Host "`n=== TESTING ORDER ===" -ForegroundColor Cyan
 Write-Host "Business Phone: $businessPhone" -ForegroundColor Yellow

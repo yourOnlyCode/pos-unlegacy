@@ -72,6 +72,22 @@ export function getTenantByPhone(phoneNumber: string): Tenant | null {
   return tenants.get(phoneNumber) || null;
 }
 
+export function getAllTenants(): Tenant[] {
+  return Array.from(tenants.values());
+}
+
+export function addTenant(tenant: Tenant): void {
+  tenants.set(tenant.phoneNumber, tenant);
+}
+
+export function updateTenant(phoneNumber: string, updates: Partial<Tenant>): boolean {
+  const tenant = tenants.get(phoneNumber);
+  if (!tenant) return false;
+  
+  tenants.set(phoneNumber, { ...tenant, ...updates });
+  return true;
+}
+
 export function checkInventory(phoneNumber: string, itemName: string, quantity: number): { available: boolean; inStock: number } {
   const tenant = tenants.get(phoneNumber);
   if (!tenant) return { available: false, inStock: 0 };

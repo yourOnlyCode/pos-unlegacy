@@ -3,7 +3,7 @@ import { requireAuth, requireBusinessMatch } from '../middleware/authMiddleware'
 import { getTenantByPhone, getAllTenants, addTenant, updateTenant } from '../services/tenantService';
 import { assignPhoneNumber, releasePhoneNumber, getPurchasedNumbers, getNumberByBusiness } from '../services/phonePoolService';
 import { calculateCosts } from '../services/costTracker';
-import { getAllOrders } from '../services/orderService';
+
 
 const router = express.Router();
 
@@ -133,12 +133,13 @@ router.put('/tenants/:phone', (req, res) => {
   res.json(updatedTenant);
 });
 
+import { getAllOrders } from '../services/orderService';
+
 // Get orders for a specific business
 router.get('/business/:businessId/orders', requireAuth, requireBusinessMatch, (req, res) => {
   try {
     const { businessId } = req.params;
     
-    // Find business by ID in tenants
     const allTenants = getAllTenants();
     const business = allTenants.find(t => t.id === businessId);
     
@@ -149,7 +150,6 @@ router.get('/business/:businessId/orders', requireAuth, requireBusinessMatch, (r
     const phoneNumber = business.phoneNumber;
     const allOrders = getAllOrders();
     
-    // Filter orders for this business
     const businessOrders = allOrders.filter((order: any) => 
       order.businessPhone === phoneNumber
     );
