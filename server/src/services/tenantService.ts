@@ -3,7 +3,7 @@ interface Tenant {
   businessName: string;
   phoneNumber: string;
   menu: Record<string, number>;
-  inventory: Record<string, number>; // Item name -> quantity in stock
+  inventory: Record<string, number>;
   stripeAccountId?: string;
   settings: {
     currency: string;
@@ -12,10 +12,8 @@ interface Tenant {
   };
 }
 
-// In production, this would be a database
 const tenants = new Map<string, Tenant>();
 
-// Initialize with sample tenants
 tenants.set('+15551234567', {
   id: 'cafe-downtown',
   businessName: 'Downtown Cafe',
@@ -74,22 +72,6 @@ export function getTenantByPhone(phoneNumber: string): Tenant | null {
   return tenants.get(phoneNumber) || null;
 }
 
-export function getAllTenants(): Tenant[] {
-  return Array.from(tenants.values());
-}
-
-export function addTenant(tenant: Tenant): void {
-  tenants.set(tenant.phoneNumber, tenant);
-}
-
-export function updateTenant(phoneNumber: string, updates: Partial<Tenant>): boolean {
-  const tenant = tenants.get(phoneNumber);
-  if (!tenant) return false;
-  
-  tenants.set(phoneNumber, { ...tenant, ...updates });
-  return true;
-}
-
 export function checkInventory(phoneNumber: string, itemName: string, quantity: number): { available: boolean; inStock: number } {
   const tenant = tenants.get(phoneNumber);
   if (!tenant) return { available: false, inStock: 0 };
@@ -99,29 +81,4 @@ export function checkInventory(phoneNumber: string, itemName: string, quantity: 
     available: inStock >= quantity,
     inStock
   };
-}
-
-export function reduceInventory(phoneNumber: string, items: Array<{ name: string; quantity: number }>): boolean {
-  const tenant = tenants.get(phoneNumber);
-  if (!tenant) return false;
-  
-  // Create a copy of inventory
-  const newInventory = { ...tenant.inventory };
-  
-  // Check if all items are available
-  for (const item of items) {
-    const currentStock = newInventory[item.name] || 0;
-    if (currentStock < item.quantity) {
-      return false; // Not enough stock
-    }
-  }
-  
-  // Reduce inventory for all items
-  for (const item of items) {
-    newInventory[item.name] -= item.quantity;
-  }
-  
-  // Update tenant with new inventory
-  tenants.set(phoneNumber, { ...tenant, inventory: newInventory });
-  return true;
 }
