@@ -8,6 +8,12 @@ const mockSmsResponses: Array<{ to: string; message: string; timestamp: Date }> 
 import { parseOrder } from '../services/orderParser';
 import { getTenantByPhone, checkInventory } from '../services/tenantService';
 import { createOrder } from '../services/orderService';
+import { 
+  getConversation, 
+  createConversation, 
+  updateConversation, 
+  completeConversation 
+} from '../services/conversationService';
 
 // Test endpoint to simulate sending an SMS order
 router.post('/sms', (req, res) => {
@@ -33,6 +39,14 @@ router.post('/sms', (req, res) => {
     });
   }
 
+  // Check if customer is in a conversation
+  const existingConversation = getConversation(customerPhone);
+  
+  if (existingConversation) {
+    // Handle conversation flow
+    return handleTestConversationStep(existingConversation, message, customerPhone, tenant, res);
+  }
+
   // Parse the order with tenant's menu
   const parsedOrder = parseOrder(message, tenant.menu);
 
@@ -47,6 +61,61 @@ router.post('/sms', (req, res) => {
     });
   }
 
+  // Check if name is missing (table is optional)
+  if (!parsedOrder.customerName) {
+    createConversation(customerPhone, businessPhone, 'awaiting_info', message, parsedOrder);
+    return res.json({
+      success: false,
+      awaitingInput: 'name',
+      parsedOrder,
+      smsResponse: "What's your name?"
+    });
+  }
+
+  // Process complete order
+  return processTestOrder(parsedOrder, customerPhone, businessPhone, tenant, res);
+});
+
+// Handle multi-step conversation in test mode
+function handleTestConversationStep(conversation: any, message: string, customerPhone: string, tenant: any, res: any) {
+  if (conversation.stage === 'awaiting_info') {
+    const { parsedOrder } = conversation;
+    let customerName = parsedOrder.customerName;
+    let tableNumber = parsedOrder.tableNumber;
+    
+    // Parse the response for name and table
+    const commaMatch = message.match(/^([^,]+),\s*(?:table\s*)?([\d]+)/i);
+    if (commaMatch) {
+      if (!customerName) customerName = commaMatch[1].trim();
+      if (!tableNumber) tableNumber = commaMatch[2].trim();
+    } else {
+      const tableMatch = message.match(/(?:table\s*|#)?(\d+)/i);
+      if (tableMatch && !tableNumber) {
+        tableNumber = tableMatch[1];
+        if (!customerName) {
+          customerName = message.replace(/(?:table\s*|#)?\d+/i, '').trim();
+        }
+      } else if (!customerName) {
+        customerName = message.trim();
+      }
+    }
+    
+    parsedOrder.customerName = customerName;
+    parsedOrder.tableNumber = tableNumber || 'N/A';
+    
+    completeConversation(customerPhone);
+    return processTestOrder(
+      parsedOrder,
+      customerPhone,
+      conversation.businessPhone,
+      tenant,
+      res
+    );
+  }
+}
+
+// Process a complete test order
+function processTestOrder(parsedOrder: any, customerPhone: string, businessPhone: string, tenant: any, res: any) {
   // Check inventory for all items
   const inventoryIssues: string[] = [];
   const stockWarnings: string[] = [];
@@ -98,7 +167,7 @@ router.post('/sms', (req, res) => {
 
   // Format response
   const itemsList = parsedOrder.items
-    .map(item => {
+    .map((item: any) => {
       const mods = item.modifications ? ` (${item.modifications.join(', ')})` : '';
       return `${item.quantity}x ${item.name}${mods} ($${(item.price * item.quantity).toFixed(2)})`;
     })
@@ -106,17 +175,51 @@ router.post('/sms', (req, res) => {
 
   const paymentLink = `http://localhost:3000/pay/${orderId}`;
   const stockInfo = stockWarnings.length > 0 ? '\n\n' + stockWarnings.join('\n') + '\n' : '';
+  const customerInfo = `👤 ${parsedOrder.customerName} | Table #${parsedOrder.tableNumber}\n\n`;
   
   const smsResponse = parsedOrder.hasFuzzyMatches 
-    ? `✓ I understood your order as:\n\n${itemsList}\n\nTotal: $${parsedOrder.total.toFixed(2)}${stockInfo}\n\nIf this looks correct, pay now:\n${paymentLink}`
-    : `Order ready for payment:\n\n${itemsList}\n\nTotal: $${parsedOrder.total.toFixed(2)}${stockInfo}\n\nPay now:\n${paymentLink}`;
+    ? `✓ I understood your order as:\n\n${customerInfo}${itemsList}\n\nTotal: $${parsedOrder.total.toFixed(2)}${stockInfo}\n\nIf this looks correct, pay now:\n${paymentLink}`
+    : `Order ready for payment:\n\n${customerInfo}${itemsList}\n\nTotal: $${parsedOrder.total.toFixed(2)}${stockInfo}\n\nPay now:\n${paymentLink}`;
 
-  res.json({
+  return res.json({
     success: true,
     parsedOrder,
     orderId,
     paymentLink,
     smsResponse
+  });
+}
+
+// Debug endpoint to view all orders (for testing without auth)
+router.get('/orders', (req, res) => {
+  const allOrders = require('../services/orderService').getAllOrders();
+  res.json({ 
+    totalOrders: allOrders.length,
+    orders: allOrders.map((order: any) => ({
+      id: order.id,
+      customerName: order.customerName,
+      customerPhone: order.customerPhone,
+      businessPhone: order.businessPhone,
+      businessName: order.tenant?.businessName,
+      items: order.items,
+      total: order.total,
+      status: order.status,
+      createdAt: order.createdAt,
+      tableNumber: order.tableNumber
+    }))
+  });
+});
+
+// Debug endpoint to view orders for a specific business
+router.get('/orders/:businessPhone', (req, res) => {
+  const { businessPhone } = req.params;
+  const allOrders = require('../services/orderService').getAllOrders();
+  const businessOrders = allOrders.filter((order: any) => order.businessPhone === businessPhone);
+  
+  res.json({
+    businessPhone,
+    totalOrders: businessOrders.length,
+    orders: businessOrders
   });
 });
 
