@@ -10,13 +10,14 @@ interface LLMParseResult {
   }>;
   confidence: number;
   rawText: string;
+  isValid: boolean;
 }
 
 export class OllamaService {
   private baseUrl: string;
   private model: string;
 
-  constructor(baseUrl = 'http://localhost:11434', model = 'llama3.2:3b') {
+  constructor(baseUrl = 'http://localhost:11434', model = 'llama3.2:1b') {
     this.baseUrl = baseUrl;
     this.model = model;
   }
@@ -58,7 +59,7 @@ Respond with JSON only:
       return {
         ...result,
         rawText: message,
-        usedLLM: true
+        isValid: result.items && result.items.length > 0,
       };
     } catch (error) {
       console.error('Ollama parsing failed:', error);
@@ -68,7 +69,7 @@ Respond with JSON only:
         items: [],
         confidence: 0.3,
         rawText: message,
-        usedLLM: true
+        isValid: false,
       };
     }
   }
@@ -86,7 +87,8 @@ Respond with JSON only:
         confidence: 0.7
       })),
       confidence: 0.7,
-      rawText: message
+      rawText: message,
+      isValid: result.items && result.items.length > 0
     };
   }
 
