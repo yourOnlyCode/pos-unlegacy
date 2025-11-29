@@ -32,8 +32,17 @@ export default function OperationsLogin() {
 
       if (response.ok) {
         const data = await response.json();
+        
+        // Verify this is an operations account
+        if (data.role !== 'operations') {
+          setError('This is not an operations account. Please use the admin login.');
+          setLoading(false);
+          return;
+        }
+        
         localStorage.setItem('authToken', data.token);
         localStorage.setItem('businessId', data.businessId);
+        localStorage.setItem('userRole', data.role);
         navigate(`/operations/${data.businessId}`);
       } else {
         setError('Invalid credentials');
@@ -95,15 +104,21 @@ export default function OperationsLogin() {
             </Alert>
           )}
 
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Use your operations email (ops-[your-email]) and the operations password set during onboarding.
+          </Alert>
+
           <Box component="form" onSubmit={handleLogin}>
             <TextField
               fullWidth
-              label="Email"
+              label="Operations Email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               margin="normal"
+              placeholder="ops-admin@cafe.com"
               required
+              helperText="Your operations account email"
             />
             
             <TextField

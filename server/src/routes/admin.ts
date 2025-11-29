@@ -71,10 +71,10 @@ router.post('/tenants', async (req, res) => {
     // Auto-create admin and operations user accounts
     const { createUser } = require('../services/userService');
     try {
-      await createUser(id, email, adminPassword);
+      await createUser(id, email, adminPassword, 'admin');
       console.log('Admin account created for:', email);
       
-      await createUser(id, `ops-${email}`, operationsPassword);
+      await createUser(id, `ops-${email}`, operationsPassword, 'operations');
       console.log('Operations account created for:', `ops-${email}`);
     } catch (error) {
       console.error('Failed to create user accounts:', error);

@@ -20,11 +20,10 @@ export class ApiRouter {
         // Try edge device first
         try {
           await fetch(`${config.edgeApiEndpoint}/api/health`, { 
-            method: 'GET',
-            timeout: 3000 
+            method: 'GET'
           });
           this.baseUrl = config.edgeApiEndpoint;
-          return this.baseUrl;
+          return this.baseUrl as string;
         } catch (error) {
           console.log('Edge device unavailable, using cloud');
         }
