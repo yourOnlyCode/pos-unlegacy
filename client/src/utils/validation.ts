@@ -6,7 +6,7 @@ export interface ValidationError {
 export const validateBusinessForm = (data: {
   businessName: string;
   email: string;
-  menu: Record<string, number>;
+  menu?: Record<string, number>;
 }): ValidationError[] => {
   const errors: ValidationError[] = [];
 
@@ -26,13 +26,13 @@ export const validateBusinessForm = (data: {
   }
 
   // Menu validation (optional)
-  const menuItems = Object.keys(data.menu);
+  const menuItems = data.menu ? Object.keys(data.menu) : [];
   
   menuItems.forEach(item => {
     if (!item.trim()) {
       errors.push({ field: 'menu', message: 'Menu item names cannot be empty' });
     }
-    if (data.menu[item] <= 0) {
+    if (data.menu && data.menu[item] <= 0) {
       errors.push({ field: 'menu', message: 'Menu item prices must be greater than 0' });
     }
   });

@@ -1,17 +1,20 @@
 import bcrypt from 'bcryptjs';
 
+export type UserRole = 'admin' | 'operations';
+
 export interface UserAccount {
   id: string; // uuid or business scoped id
   businessId: string;
   email: string;
   passwordHash: string;
+  role: UserRole;
   createdAt: Date;
   stripeAccountId?: string; // optional link to Stripe Connect account
 }
 
 const users = new Map<string, UserAccount>(); // key: email
 
-export async function createUser(businessId: string, email: string, password: string, stripeAccountId?: string): Promise<UserAccount> {
+export async function createUser(businessId: string, email: string, password: string, role: UserRole = 'admin', stripeAccountId?: string): Promise<UserAccount> {
   const existing = users.get(email.toLowerCase());
   if (existing) throw new Error('Email already registered');
   const passwordHash = await bcrypt.hash(password, 10);
@@ -20,6 +23,7 @@ export async function createUser(businessId: string, email: string, password: st
     businessId,
     email: email.toLowerCase(),
     passwordHash,
+    role,
     createdAt: new Date(),
     stripeAccountId
   };

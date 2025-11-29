@@ -10,7 +10,7 @@ const TOKEN_EXPIRY = '8h';
 
 router.post('/register', async (req, res) => {
   try {
-    const { businessId, email, password } = req.body;
+    const { businessId, email, password, role } = req.body;
     if (!businessId || !email || !password) {
       return res.status(400).json({ error: 'businessId, email, password required' });
     }
@@ -19,9 +19,9 @@ router.post('/register', async (req, res) => {
     if (!tenant) {
       return res.status(404).json({ error: 'Business not found' });
     }
-    const user = await createUser(businessId, email, password);
-    const token = jwt.sign({ sub: user.id, businessId: user.businessId, email: user.email }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
-    res.status(201).json({ token, businessId: user.businessId, email: user.email });
+    const user = await createUser(businessId, email, password, role || 'admin');
+    const token = jwt.sign({ sub: user.id, businessId: user.businessId, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
+    res.status(201).json({ token, businessId: user.businessId, email: user.email, role: user.role });
   } catch (err) {
     res.status(400).json({ error: (err as Error).message });
   }
@@ -37,8 +37,8 @@ router.post('/login', async (req, res) => {
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    const token = jwt.sign({ sub: user.id, businessId: user.businessId, email: user.email }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
-    res.json({ token, businessId: user.businessId, email: user.email });
+    const token = jwt.sign({ sub: user.id, businessId: user.businessId, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
+    res.json({ token, businessId: user.businessId, email: user.email, role: user.role });
   } catch (err) {
     res.status(500).json({ error: 'Login failed' });
   }
@@ -54,9 +54,9 @@ router.post('/stripe/register', async (req, res) => {
     const tenant = getAllTenants().find(t => t.id === businessId);
     if (!tenant) return res.status(404).json({ error: 'Business not found' });
     if (!tenant.stripeAccountId) return res.status(400).json({ error: 'Business not linked to Stripe yet' });
-    const user = await createUser(businessId, email, password, tenant.stripeAccountId);
-    const token = jwt.sign({ sub: user.id, businessId: user.businessId, email: user.email, stripeAccountId: tenant.stripeAccountId }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
-    res.status(201).json({ token, businessId: user.businessId, email: user.email, stripeAccountId: tenant.stripeAccountId });
+    const user = await createUser(businessId, email, password, 'admin', tenant.stripeAccountId);
+    const token = jwt.sign({ sub: user.id, businessId: user.businessId, email: user.email, role: user.role, stripeAccountId: tenant.stripeAccountId }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
+    res.status(201).json({ token, businessId: user.businessId, email: user.email, role: user.role, stripeAccountId: tenant.stripeAccountId });
   } catch (err) {
     res.status(400).json({ error: (err as Error).message });
   }
@@ -73,8 +73,8 @@ router.post('/stripe/login', async (req, res) => {
     if (!tenant || !tenant.stripeAccountId || tenant.stripeAccountId !== user.stripeAccountId) {
       return res.status(403).json({ error: 'Stripe account mismatch' });
     }
-    const token = jwt.sign({ sub: user.id, businessId: user.businessId, email: user.email, stripeAccountId: tenant.stripeAccountId }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
-    res.json({ token, businessId: user.businessId, email: user.email, stripeAccountId: tenant.stripeAccountId });
+    const token = jwt.sign({ sub: user.id, businessId: user.businessId, email: user.email, role: user.role, stripeAccountId: tenant.stripeAccountId }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
+    res.json({ token, businessId: user.businessId, email: user.email, role: user.role, stripeAccountId: tenant.stripeAccountId });
   } catch (err) {
     res.status(500).json({ error: 'Stripe login failed' });
   }

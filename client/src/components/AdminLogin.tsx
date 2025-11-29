@@ -41,8 +41,16 @@ function AdminLogin() {
         setError(data.error || 'Login failed');
         return;
       }
+      
+      // Verify this is an admin account
+      if (data.role === 'operations') {
+        setError('This is an operations account. Please use the operations login.');
+        return;
+      }
+      
       localStorage.setItem('authToken', data.token);
       localStorage.setItem('businessId', data.businessId);
+      localStorage.setItem('userRole', data.role);
       navigate(`/admin/${data.businessId}`);
     } catch (err) {
       setError('Network error');
@@ -94,8 +102,16 @@ function AdminLogin() {
         setError(data.error || 'Stripe login failed');
         return;
       }
+      
+      // Verify this is an admin account
+      if (data.role === 'operations') {
+        setError('This is an operations account. Please use the operations login.');
+        return;
+      }
+      
       localStorage.setItem('authToken', data.token);
       localStorage.setItem('businessId', data.businessId);
+      localStorage.setItem('userRole', data.role);
       if (data.stripeAccountId) localStorage.setItem('stripeAccountId', data.stripeAccountId);
       navigate(`/admin/${data.businessId}`);
     } catch (err) {
