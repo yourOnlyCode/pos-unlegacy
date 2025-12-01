@@ -10,6 +10,7 @@ import ConnectSuccess from './components/ConnectSuccess';
 import AdminDashboard from './components/AdminDashboard';
 import OperationsDashboard from './components/OperationsDashboard';
 import OperationsLogin from './components/OperationsLogin';
+import PublicOrderPage from './components/PublicOrderPage';
 
 const theme = createTheme({
   palette: {
@@ -34,6 +35,7 @@ function App() {
             <Route path="/admin/:businessId" element={<AdminDashboard />} />
             <Route path="/operations-login" element={<OperationsLogin />} />
             <Route path="/operations/:businessId" element={<OperationsDashboard />} />
+            <Route path="/order/:businessId" element={<PublicOrderPage />} />
           </Routes>
         </Container>
       </Router>

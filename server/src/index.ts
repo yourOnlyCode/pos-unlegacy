@@ -13,6 +13,7 @@ import testRoutes from './routes/test';
 import inventoryRoutes from './routes/inventory';
 import tenantRoutes from './routes/tenants';
 import orderRoutes from './routes/orders';
+import businessRoutes from './routes/business';
 import { BackupScheduler } from './services/backupScheduler';
 
 dotenv.config();
@@ -40,6 +41,7 @@ app.use('/api/test', testRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/tenants', tenantRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/business', businessRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
