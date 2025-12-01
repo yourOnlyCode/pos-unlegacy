@@ -34,15 +34,9 @@ router.post('/tenants', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields (id, businessName, email, adminPassword, operationsPassword)' });
     }
 
-    // Auto-assign phone number from pool
-    console.log('Assigning phone number for business:', id);
-    const phoneNumber = await assignPhoneNumber(id);
-    if (!phoneNumber) {
-      console.error('Failed to assign phone number for business:', id);
-      return res.status(500).json({ error: 'No phone numbers available' });
-    }
-
-    console.log('Phone number assigned:', phoneNumber);
+    // Skip phone number assignment for now
+    const phoneNumber = null;
+    console.log('Skipping phone number assignment for business:', id);
 
     // Initialize inventory with default stock levels for each menu item
     const inventory: Record<string, number> = {};
@@ -55,7 +49,7 @@ router.post('/tenants', async (req, res) => {
     const tenant = {
       id,
       businessName,
-      phoneNumber,
+      phoneNumber: phoneNumber || `temp-${id}`, // Temporary placeholder
       menu: menu || {},
       inventory,
       settings: settings || {
@@ -82,11 +76,11 @@ router.post('/tenants', async (req, res) => {
     
     // Return tenant info with next step for Stripe Connect
     res.status(201).json({
-      phoneNumber: tenant.phoneNumber,
+      phoneNumber: null, // No phone number assigned
       nextStep: {
         action: 'create_stripe_account',
         endpoint: '/api/connect/create-account',
-        data: { businessId: id, businessName, email, phoneNumber }
+        data: { businessId: id, businessName, email, phoneNumber: null }
       }
     });
   } catch (error) {

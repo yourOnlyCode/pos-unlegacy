@@ -21,8 +21,8 @@ router.post('/create-payment-intent', async (req, res) => {
       return res.status(400).json({ error: 'Business Stripe account not connected' });
     }
 
-    // Calculate platform fee (e.g., $2 + 2% of order)
-    const platformFeeAmount = Math.round((2.00 + (amount * 0.02)) * 100); // $2 + 2%
+    // Calculate platform fee (0.25% of order)
+    const platformFeeAmount = Math.round(amount * 0.0025 * 100); // 0.25%
 
     const stripe = getStripe();
     const paymentIntent = await stripe.paymentIntents.create({
