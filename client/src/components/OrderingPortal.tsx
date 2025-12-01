@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { Send, Restaurant, Person } from '@mui/icons-material';
 import SwipableMenu from './SwipableMenu';
+import FloatingCart from './FloatingCart';
 
 interface Message {
   id: string;
@@ -31,6 +32,12 @@ interface BusinessMenu {
   [key: string]: number;
 }
 
+interface CartItem {
+  name: string;
+  quantity: number;
+  emoji: string;
+}
+
 export default function OrderingPortal({ businessId, businessName }: OrderingPortalProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -44,6 +51,7 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const [businessMenu, setBusinessMenu] = useState<BusinessMenu>({});
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -125,12 +133,53 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
   };
 
   const handleAddToOrder = (item: string, quantity: number) => {
-    const orderText = `${quantity} ${item}`;
+    const itemEmojis: Record<string, string> = {
+      coffee: '☕',
+      latte: '☕',
+      cappuccino: '☕',
+      sandwich: '🥪',
+      bagel: '🥯',
+      pastry: '🧁',
+      muffin: '🧁',
+    };
+
+    // Add to floating cart
+    const existingItemIndex = cartItems.findIndex(cartItem => cartItem.name === item);
+    if (existingItemIndex >= 0) {
+      setCartItems(prev => 
+        prev.map((cartItem, index) => 
+          index === existingItemIndex 
+            ? { ...cartItem, quantity: cartItem.quantity + quantity }
+            : cartItem
+        )
+      );
+    } else {
+      setCartItems(prev => [...prev, {
+        name: item,
+        quantity,
+        emoji: itemEmojis[item] || '🍽️'
+      }]);
+    }
+  };
+
+  const handleRemoveFromCart = (itemName: string) => {
+    setCartItems(prev => prev.filter(item => item.name !== itemName));
+  };
+
+  const handleSendCart = () => {
+    if (cartItems.length === 0) return;
+    
+    const orderText = cartItems
+      .map(item => `${item.quantity} ${item.name}`)
+      .join(', ');
+    
     setInputText(orderText);
+    setCartItems([]);
   };
 
   return (
-    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      <FloatingCart items={cartItems} onRemoveItem={handleRemoveFromCart} />
       {/* Header */}
       <Paper elevation={2} sx={{ p: 3, borderRadius: 0 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -269,9 +318,33 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
         
         <Alert severity="info" sx={{ mt: 2, py: 1 }}>
           <Typography variant="body2" sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
-            Try: "2 coffee, 1 sandwich" or "menu" to see options
+            {cartItems.length > 0 
+              ? `Cart: ${cartItems.length} items - Type message or send cart`
+              : 'Try: "2 coffee, 1 sandwich" or "menu" to see options'
+            }
           </Typography>
         </Alert>
+        
+        {cartItems.length > 0 && (
+          <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleSendCart}
+              sx={{ fontSize: '0.8rem' }}
+            >
+              Send Cart ({cartItems.length} items)
+            </Button>
+            <Button
+              variant="text"
+              size="small"
+              onClick={() => setCartItems([])}
+              sx={{ fontSize: '0.8rem' }}
+            >
+              Clear
+            </Button>
+          </Box>
+        )}
       </Paper>
     </Box>
   );
