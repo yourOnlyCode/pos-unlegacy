@@ -37,6 +37,7 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
   const [loading, setLoading] = useState(false);
   const [businessMenu, setBusinessMenu] = useState<BusinessMenu>({});
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [cartExpanded, setCartExpanded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -208,7 +209,12 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-      <FloatingCart items={cartItems} onRemoveItem={handleRemoveFromCart} />
+      <FloatingCart 
+        items={cartItems} 
+        onRemoveItem={handleRemoveFromCart}
+        expanded={cartExpanded}
+        onExpandedChange={setCartExpanded}
+      />
       
       <OrderHeader businessName={businessName} />
       
@@ -228,6 +234,9 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
         cartItemsCount={cartItems.length}
         onSendCart={handleSendCart}
         onClearCart={() => setCartItems([])}
+        cartItems={cartItems}
+        onRemoveItem={handleRemoveFromCart}
+        onCartClick={() => setCartExpanded(!cartExpanded)}
       />
       
       <OrderInput
