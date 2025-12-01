@@ -1,20 +1,12 @@
 {
   "name": "pos-system",
   "version": "1.0.0",
-  "description": "Point of Sale System - Square-like POS application",
-  "private": true,
+  "scripts": {
+    "build": "cd client && npm run build",
+    "vercel-build": "cd client && npm install && npm run build"
+  },
   "workspaces": [
     "client",
     "server"
-  ],
-  "scripts": {
-    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
-    "dev:client": "npm run dev --workspace=client",
-    "dev:server": "npm run dev --workspace=server",
-    "build": "npm run build --workspace=client && npm run build --workspace=server",
-    "install:all": "npm install && npm install --workspace=client && npm install --workspace=server"
-  },
-  "devDependencies": {
-    "concurrently": "^8.2.2"
-  }
+  ]
 }
