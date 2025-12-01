@@ -42,6 +42,10 @@ export function getAllOrders(): any[] {
   return Array.from(orders.values());
 }
 
+export function updateOrderStatus(orderId: string, status: string): boolean {
+  return updateOrder(orderId, { status });
+}
+
 export function deleteOrder(orderId: string): boolean {
   return orders.delete(orderId);
 }

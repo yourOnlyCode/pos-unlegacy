@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { getAllTenants, checkInventory } from '../services/tenantService';
 import { parseOrder } from '../services/orderParser';
-import { createOrder } from '../services/orderService';
+import { createOrder, updateOrderStatus, getOrder } from '../services/orderService';
 
 const router = Router();
 
@@ -183,5 +183,24 @@ function processCompleteOrder(parsedOrder: any, customerPhone: string, businessP
     orderItems: parsedOrder.items,
   });
 }
+
+// Update order status endpoint
+router.put('/:orderId/status', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status } = req.body;
+    
+    const success = updateOrderStatus(orderId, status);
+    
+    if (success) {
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: 'Order not found' });
+    }
+  } catch (error) {
+    console.error('Update order status error:', error);
+    res.status(500).json({ error: 'Failed to update order status' });
+  }
+});
 
 export default router;
