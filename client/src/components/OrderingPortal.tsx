@@ -218,9 +218,8 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
         setMessages={setMessages}
         setCartItems={setCartItems}
         setLoading={setLoading}
+        messagesEndRef={messagesEndRef}
       />
-      
-      <div ref={messagesEndRef} />
       
       <CartActions
         cartItemsCount={cartItems.length}

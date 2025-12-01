@@ -12,6 +12,7 @@ interface MessageListProps {
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   setCartItems: React.Dispatch<React.SetStateAction<any[]>>;
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  messagesEndRef: React.RefObject<HTMLDivElement>;
 }
 
 export default function MessageList({ 
@@ -22,7 +23,8 @@ export default function MessageList({
   sessionId, 
   setMessages, 
   setCartItems, 
-  setLoading 
+  setLoading,
+  messagesEndRef
 }: MessageListProps) {
   
   const isMenuDisabled = (() => {
@@ -204,6 +206,7 @@ export default function MessageList({
           </ListItem>
         ))}
       </List>
+      <div ref={messagesEndRef} />
     </Box>
   );
 }
