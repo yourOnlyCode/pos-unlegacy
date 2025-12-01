@@ -129,7 +129,8 @@ router.post('/chat', async (req, res) => {
       
       return res.json({
         response: "What's your name?",
-        type: 'info'
+        type: 'info',
+        awaitingName: true
       });
     }
     
@@ -221,6 +222,7 @@ function processCompleteOrder(parsedOrder: any, customerPhone: string, businessP
     total: parsedOrder.total,
     paymentLink: paymentLink,
     orderItems: parsedOrder.items,
+    awaitingName: false
   });
 }
 

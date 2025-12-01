@@ -20,6 +20,7 @@ interface MenuItem {
 interface SwipableMenuProps {
   menu: Record<string, number>;
   onAddToOrder: (item: string, quantity: number) => void;
+  disabled?: boolean;
 }
 
 const menuCategories = {
@@ -38,7 +39,8 @@ const itemEmojis: Record<string, string> = {
   muffin: '🧁',
 };
 
-export default function SwipableMenu({ menu, onAddToOrder }: SwipableMenuProps) {
+export default function SwipableMenu({ menu, onAddToOrder, disabled = false }: SwipableMenuProps) {
+  console.log('SwipableMenu render - disabled:', disabled);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
 
@@ -91,8 +93,10 @@ export default function SwipableMenu({ menu, onAddToOrder }: SwipableMenuProps) 
                   minWidth: 140,
                   maxWidth: 140,
                   flexShrink: 0,
-                  cursor: 'pointer',
-                  '&:hover': { bgcolor: 'action.hover' }
+                  cursor: disabled ? 'not-allowed' : 'pointer',
+                  opacity: disabled ? 0.5 : 1,
+                  pointerEvents: disabled ? 'none' : 'auto',
+                  '&:hover': { bgcolor: disabled ? 'transparent' : 'action.hover' }
                 }}
               >
                 <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
@@ -110,7 +114,7 @@ export default function SwipableMenu({ menu, onAddToOrder }: SwipableMenuProps) 
                     <IconButton 
                       size="small" 
                       onClick={() => updateQuantity(item, -1)}
-                      disabled={!quantities[item]}
+                      disabled={disabled || !quantities[item]}
                       sx={{ p: 0.5 }}
                     >
                       <Remove fontSize="small" />
@@ -123,6 +127,7 @@ export default function SwipableMenu({ menu, onAddToOrder }: SwipableMenuProps) 
                     <IconButton 
                       size="small" 
                       onClick={() => updateQuantity(item, 1)}
+                      disabled={disabled}
                       sx={{ p: 0.5 }}
                     >
                       <Add fontSize="small" />
@@ -134,7 +139,7 @@ export default function SwipableMenu({ menu, onAddToOrder }: SwipableMenuProps) 
                     size="small"
                     fullWidth
                     onClick={() => addToOrder(item)}
-                    disabled={!quantities[item]}
+                    disabled={disabled || !quantities[item]}
                     sx={{ fontSize: '0.7rem', py: 0.5 }}
                   >
                     Add {quantities[item] || 1}
@@ -172,10 +177,12 @@ export default function SwipableMenu({ menu, onAddToOrder }: SwipableMenuProps) 
                 minWidth: 140,
                 maxWidth: 140,
                 flexShrink: 0,
-                cursor: 'pointer',
-                '&:hover': { bgcolor: 'action.hover' }
+                cursor: disabled ? 'not-allowed' : 'pointer',
+                opacity: disabled ? 0.5 : 1,
+                pointerEvents: disabled ? 'none' : 'auto',
+                '&:hover': { bgcolor: disabled ? 'transparent' : 'action.hover' }
               }}
-              onClick={() => setSelectedCategory(key)}
+              onClick={() => !disabled && setSelectedCategory(key)}
             >
               <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
                 <Typography variant="h4" sx={{ mb: 0.5 }}>

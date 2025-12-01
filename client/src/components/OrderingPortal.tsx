@@ -47,7 +47,12 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
   const [loading, setLoading] = useState(false);
   const [businessMenu, setBusinessMenu] = useState<BusinessMenu>({});
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [isAwaitingName, setIsAwaitingName] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    console.log('isAwaitingName changed to:', isAwaitingName);
+  }, [isAwaitingName]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -136,6 +141,8 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
     setMessages(prev => [...prev, customerMessage]);
     setInputText('');
     setLoading(true);
+    
+
 
     try {
       const response = await fetch('/api/orders/chat', {
@@ -149,6 +156,7 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
       });
 
       const result = await response.json();
+      console.log('Server response:', result);
 
       const systemMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -161,6 +169,17 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
         total: result.total,
         orderItems: result.orderItems,
       };
+
+      // Force disable menu when asking for name
+      if (result.response && result.response.includes("What's your name")) {
+        console.log('FORCING awaiting name to TRUE');
+        setIsAwaitingName(true);
+      } else if (result.type === 'payment' || result.response.includes('Order ready')) {
+        console.log('FORCING awaiting name to FALSE');
+        setIsAwaitingName(false);
+      }
+      
+      console.log('Current isAwaitingName state:', isAwaitingName);
 
       setMessages(prev => [...prev, systemMessage]);
     } catch (error) {
@@ -185,6 +204,7 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
   };
 
   const handleAddToOrder = (item: string, quantity: number) => {
+    if (isAwaitingName) return; // Block cart additions when awaiting name
     setCartItems(prev => addToCart(prev, item, quantity));
   };
 
@@ -193,7 +213,7 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
   };
 
   const handleSendCart = async () => {
-    if (cartItems.length === 0) return;
+    if (cartItems.length === 0 || isAwaitingName) return;
 
     const orderText = formatCartOrder(cartItems);
     setCartItems([]);
@@ -292,10 +312,26 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
 
                   {message.sender === 'system' && message.text.includes('Menu:') && (
                     <Box sx={{ mt: 2, width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
-                      <SwipableMenu
-                        menu={businessMenu}
-                        onAddToOrder={handleAddToOrder}
-                      />
+                      <div>
+                        <div style={{ background: 'blue', color: 'white', padding: '5px', marginBottom: '5px', fontSize: '12px' }}>
+                          Disabled: {String((() => {
+                            const nameQuestionIndex = messages.findIndex(msg => msg.text.includes("What's your name?"));
+                            if (nameQuestionIndex === -1) return false;
+                            const hasCustomerResponseAfter = messages.slice(nameQuestionIndex + 1).some(msg => msg.sender === 'customer');
+                            return !hasCustomerResponseAfter;
+                          })())}
+                        </div>
+                        <SwipableMenu
+                          menu={businessMenu}
+                          onAddToOrder={handleAddToOrder}
+                          disabled={(() => {
+                            const nameQuestionIndex = messages.findIndex(msg => msg.text.includes("What's your name?"));
+                            if (nameQuestionIndex === -1) return false;
+                            const hasCustomerResponseAfter = messages.slice(nameQuestionIndex + 1).some(msg => msg.sender === 'customer');
+                            return !hasCustomerResponseAfter;
+                          })()}
+                        />
+                      </div>
                     </Box>
                   )}
 
@@ -412,7 +448,10 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
           <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
             <Button
               onClick={handleSendCart}
+              disabled={isAwaitingName}
               sx={{
+                opacity: isAwaitingName ? 0.5 : 1,
+                pointerEvents: isAwaitingName ? 'none' : 'auto',
                 background: 'rgba(255, 255, 255, 0.3)',
                 backdropFilter: 'blur(20px) saturate(180%)',
                 WebkitBackdropFilter: 'blur(20px) saturate(180%)',
