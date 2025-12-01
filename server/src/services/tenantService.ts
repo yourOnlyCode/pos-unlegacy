@@ -2,7 +2,7 @@ interface Tenant {
   id: string;
   businessName: string;
   phoneNumber: string;
-  menu: Record<string, { price: number; image?: string } | number>;
+  menu: Record<string, { price: number; image?: string; description?: string } | number>;
   inventory: Record<string, number>;
   stripeAccountId?: string;
   settings: {

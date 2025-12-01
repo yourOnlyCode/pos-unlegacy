@@ -17,7 +17,7 @@ import { Add, Delete, Edit, Save, Cancel } from '@mui/icons-material';
 
 interface InventoryManagementProps {
   businessId: string;
-  initialMenu: Record<string, { price: number; image?: string } | number>;
+  initialMenu: Record<string, { price: number; image?: string; description?: string } | number>;
   onMenuUpdate: () => void;
 }
 
@@ -26,15 +26,17 @@ export default function InventoryManagement({
   initialMenu,
   onMenuUpdate 
 }: InventoryManagementProps) {
-  const [menu, setMenu] = useState<Record<string, { price: number; image?: string } | number>>(initialMenu);
+  const [menu, setMenu] = useState<Record<string, { price: number; image?: string; description?: string } | number>>(initialMenu);
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editPrice, setEditPrice] = useState('');
   const [editImage, setEditImage] = useState('');
+  const [editDescription, setEditDescription] = useState('');
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [newItemName, setNewItemName] = useState('');
   const [newItemPrice, setNewItemPrice] = useState('');
   const [newItemImage, setNewItemImage] = useState('');
+  const [newItemDescription, setNewItemDescription] = useState('');
   const [newImageFile, setNewImageFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -131,16 +133,18 @@ export default function InventoryManagement({
     setMenu(newMenu);
   };
 
-  const handleStartEdit = (itemName: string, menuItem: { price: number; image?: string } | number) => {
+  const handleStartEdit = (itemName: string, menuItem: { price: number; image?: string; description?: string } | number) => {
     setEditingItem(itemName);
     setEditName(itemName);
     
     if (typeof menuItem === 'number') {
       setEditPrice(menuItem.toString());
       setEditImage('');
+      setEditDescription('');
     } else {
       setEditPrice(menuItem.price.toString());
       setEditImage(menuItem.image || '');
+      setEditDescription(menuItem.description || '');
     }
   };
 
