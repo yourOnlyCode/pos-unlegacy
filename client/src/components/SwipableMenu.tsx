@@ -169,8 +169,8 @@ export default function SwipableMenu({ menu, onAddToOrder }: SwipableMenuProps) 
               key={key}
               variant="outlined" 
               sx={{ 
-                minWidth: 100,
-                maxWidth: 100,
+                minWidth: 140,
+                maxWidth: 140,
                 flexShrink: 0,
                 cursor: 'pointer',
                 '&:hover': { bgcolor: 'action.hover' }

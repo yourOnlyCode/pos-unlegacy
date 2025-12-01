@@ -1,5 +1,5 @@
-import { Box, Chip, IconButton, Fade } from '@mui/material';
-import { Close } from '@mui/icons-material';
+import { Box, Chip, IconButton, Fade, Avatar } from '@mui/material';
+import { Close, ShoppingCart } from '@mui/icons-material';
 
 interface CartItem {
   name: string;
@@ -38,8 +38,33 @@ export default function FloatingCart({ items, onRemoveItem }: FloatingCartProps)
         flexWrap: 'wrap',
         justifyContent: 'center',
         maxWidth: '90vw',
+        alignItems: 'center',
       }}
     >
+      <Avatar
+        sx={{
+          bgcolor: 'secondary.main',
+          width: 32,
+          height: 32,
+          animation: 'bounce 0.5s ease-out',
+          '@keyframes bounce': {
+            '0%': {
+              transform: 'scale(0) translateY(-20px)',
+              opacity: 0,
+            },
+            '50%': {
+              transform: 'scale(1.2) translateY(-10px)',
+              opacity: 1,
+            },
+            '100%': {
+              transform: 'scale(1) translateY(0)',
+              opacity: 1,
+            },
+          },
+        }}
+      >
+        <ShoppingCart fontSize="small" />
+      </Avatar>
       {items.map((item, index) => (
         <Fade in={true} key={`${item.name}-${index}`} timeout={300}>
           <Chip
