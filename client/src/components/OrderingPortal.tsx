@@ -406,6 +406,29 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
         <div ref={messagesEndRef} />
       </Box>
 
+      {/* Cart Actions */}
+      {cartItems.length > 0 && (
+        <Paper elevation={2} sx={{ p: 2, bgcolor: 'primary.light', color: 'primary.contrastText' }}>
+          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+            <Button
+              variant="contained"
+              color="secondary"
+              onClick={handleSendCart}
+              sx={{ fontSize: '0.9rem', fontWeight: 'bold' }}
+            >
+              Send Cart ({cartItems.length} items)
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => setCartItems([])}
+              sx={{ fontSize: '0.9rem', color: 'white', borderColor: 'white' }}
+            >
+              Clear
+            </Button>
+          </Box>
+        </Paper>
+      )}
+
       {/* Input */}
       <Paper elevation={3} sx={{ p: { xs: 2.5, sm: 3 }, borderRadius: 0 }}>
         <Box sx={{ display: 'flex', gap: 1.5 }}>
@@ -446,32 +469,11 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
         <Alert severity="info" sx={{ mt: 2, py: 1 }}>
           <Typography variant="body2" sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
             {cartItems.length > 0
-              ? `Cart: ${cartItems.length} items - Type message or send cart`
+              ? `Cart: ${cartItems.length} items ready to send`
               : 'Try: "2 coffee, 1 sandwich" or "menu" to see options'
             }
           </Typography>
         </Alert>
-
-        {cartItems.length > 0 && (
-          <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={handleSendCart}
-              sx={{ fontSize: '0.8rem' }}
-            >
-              Send Cart ({cartItems.length} items)
-            </Button>
-            <Button
-              variant="text"
-              size="small"
-              onClick={() => setCartItems([])}
-              sx={{ fontSize: '0.8rem' }}
-            >
-              Clear
-            </Button>
-          </Box>
-        )}
       </Paper>
     </Box>
   );
