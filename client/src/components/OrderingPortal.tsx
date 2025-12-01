@@ -47,12 +47,13 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: `Welcome to ${businessName}! Type your order or "menu" to see available items.`,
+      text: `Welcome to ${businessName}! Here's our menu:`,
       sender: 'system',
       timestamp: new Date(),
       type: 'info'
     }
   ]);
+  const menuSentRef = useRef(false);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const [businessMenu, setBusinessMenu] = useState<BusinessMenu>({});
@@ -73,12 +74,37 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
         const response = await fetch(`/api/business/${businessId}/public`);
         const business = await response.json();
         setBusinessMenu(business.menu || {});
+        
+        // Auto-send menu after fetching
+        if (!menuSentRef.current) {
+          menuSentRef.current = true;
+          const menuResponse = await fetch('/api/orders/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              businessId,
+              message: 'menu',
+              customerPhone: sessionId,
+            }),
+          });
+          
+          const result = await menuResponse.json();
+          const menuMessage: Message = {
+            id: '2',
+            text: result.response,
+            sender: 'system',
+            timestamp: new Date(),
+            type: 'info'
+          };
+          
+          setMessages(prev => [...prev, menuMessage]);
+        }
       } catch (error) {
         console.error('Failed to fetch menu:', error);
       }
     };
     fetchMenu();
-  }, [businessId]);
+  }, [businessId, sessionId]);
 
   // Poll for notifications
   useEffect(() => {
