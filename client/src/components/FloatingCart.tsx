@@ -63,15 +63,15 @@ export default function FloatingCart({ items, onRemoveItem }: FloatingCartProps)
     >
       <Avatar
         sx={{
-          background: 'rgba(173, 216, 230, 0.4)',
+          background: 'rgba(0, 115, 200, 0.1)',
           backdropFilter: 'blur(20px) saturate(180%)',
           WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          border: '1px solid rgba(173, 216, 230, 0.4)',
-          width: 32,
-          height: 32,
+          border: '1px solid rgba(255, 255, 255, 0.3)',
+          width: 28,
+          height: 28,
           boxShadow: '0 12px 40px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.4)',
           '& .MuiSvgIcon-root': {
-            color: 'rgba(0, 0, 0, 0.7)',
+            color: 'rgba(0, 115, 200, 0.8)',
             filter: 'drop-shadow(0 1px 2px rgba(255, 255, 255, 0.5))',
           },
           animation: 'bounce 0.5s ease-out',
@@ -107,65 +107,65 @@ export default function FloatingCart({ items, onRemoveItem }: FloatingCartProps)
               }
               onDelete={() => handleRemove(item.name)}
               deleteIcon={<Close fontSize="small" />}
-            sx={{
-              background: 'rgba(173, 216, 230, 0.35)',
-              backdropFilter: 'blur(20px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-              border: '1px solid rgba(173, 216, 230, 0.4)',
-              borderRadius: '20px',
-              color: 'rgba(0, 0, 0, 0.8)',
-              fontWeight: 600,
-              fontSize: '0.9rem',
-              height: 40,
-              px: 2,
-              boxShadow: '0 12px 40px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.4)',
-              '& .MuiChip-label': {
-                px: 1,
-                textShadow: '0 1px 2px rgba(255, 255, 255, 0.5)',
-              },
-              '& .MuiChip-deleteIcon': {
-                color: 'rgba(0, 0, 0, 0.6)',
-                fontSize: '1.1rem',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  color: 'error.main',
-                  transform: 'scale(1.1)',
+              sx={{
+                background: 'rgba(0, 115, 200, 0.1)',
+                backdropFilter: 'blur(20px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                borderRadius: '16px',
+                color: 'rgba(0, 0, 0, 0.8)',
+                fontWeight: 600,
+                fontSize: '0.85rem',
+                height: 32,
+                px: 2,
+                boxShadow: '0 12px 40px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.4)',
+                '& .MuiChip-label': {
+                  px: 1,
+                  textShadow: '0 1px 2px rgba(255, 255, 255, 0.5)',
                 },
-                '&:active': {
-                  transform: 'scale(0.9)',
+                '& .MuiChip-deleteIcon': {
+                  color: 'rgba(0, 0, 0, 0.6)',
+                  fontSize: '1.1rem',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    color: 'error.main',
+                    transform: 'scale(1.1)',
+                  },
+                  '&:active': {
+                    transform: 'scale(0.9)',
+                  },
                 },
-              },
 
-              animation: isRemoving ? 'pop 0.2s ease-out forwards' : 'bounce 0.5s ease-out',
-              '@keyframes bounce': {
-                '0%': {
-                  transform: 'scale(0) translateY(-20px)',
-                  opacity: 0,
+                animation: isRemoving ? 'pop 0.2s ease-out forwards' : 'bounce 0.5s ease-out',
+                '@keyframes bounce': {
+                  '0%': {
+                    transform: 'scale(0) translateY(-20px)',
+                    opacity: 0,
+                  },
+                  '50%': {
+                    transform: 'scale(1.2) translateY(-10px)',
+                    opacity: 1,
+                  },
+                  '100%': {
+                    transform: 'scale(1) translateY(0)',
+                    opacity: 1,
+                  },
                 },
-                '50%': {
-                  transform: 'scale(1.2) translateY(-10px)',
-                  opacity: 1,
+                '@keyframes pop': {
+                  '0%': {
+                    transform: 'scale(1)',
+                  },
+                  '50%': {
+                    transform: 'scale(1.3)',
+                  },
+                  '100%': {
+                    transform: 'scale(0)',
+                    opacity: 0,
+                  },
                 },
-                '100%': {
-                  transform: 'scale(1) translateY(0)',
-                  opacity: 1,
-                },
-              },
-              '@keyframes pop': {
-                '0%': {
-                  transform: 'scale(1)',
-                },
-                '50%': {
-                  transform: 'scale(1.3)',
-                },
-                '100%': {
-                  transform: 'scale(0)',
-                  opacity: 0,
-                },
-              },
-            }}
-          />
-        </Collapse>
+              }}
+            />
+          </Collapse>
         );
       })}
     </Box>
