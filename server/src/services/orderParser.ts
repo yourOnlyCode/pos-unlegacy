@@ -109,6 +109,16 @@ function extractModifications(segment: string, itemName: string): string[] {
     }
   }
   
+  // Also look for comma-separated or "and"-separated modifications after the item
+  const modText = afterItem.trim();
+  if (modText) {
+    // Split by comma or "and" and clean up
+    const parts = modText.split(/,|\s+and\s+/i)
+      .map(part => part.trim())
+      .filter(part => part && !part.match(/^\d+$/)); // Filter out numbers
+    modifications.push(...parts);
+  }
+  
   return modifications;
 }
 
