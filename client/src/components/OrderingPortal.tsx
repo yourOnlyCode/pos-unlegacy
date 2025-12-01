@@ -14,18 +14,11 @@ import {
 import { Send, Restaurant, Person } from '@mui/icons-material';
 import SwipableMenu from './SwipableMenu';
 import FloatingCart from './FloatingCart';
+import { CartItem, addToCart, removeFromCart, formatCartOrder } from '../ordering-helpers/cartHelpers';
+import { Message, createCustomerMessage, createSystemMessage, createErrorMessage } from '../ordering-helpers/messageHelpers';
+import { sendChatMessage, fetchBusinessMenu, fetchNotifications } from '../ordering-helpers/apiHelpers';
 
-interface Message {
-  id: string;
-  text: string;
-  sender: 'customer' | 'system';
-  timestamp: Date;
-  type?: 'order' | 'payment' | 'info';
-  paymentLink?: string;
-  orderId?: string;
-  total?: number;
-  orderItems?: Array<{ name: string; quantity: number; price: number }>;
-}
+
 
 interface OrderingPortalProps {
   businessId: string;
@@ -36,11 +29,7 @@ interface BusinessMenu {
   [key: string]: number;
 }
 
-interface CartItem {
-  name: string;
-  quantity: number;
-  emoji: string;
-}
+
 
 export default function OrderingPortal({ businessId, businessName }: OrderingPortalProps) {
   const [sessionId] = useState(() => `web-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
@@ -74,7 +63,7 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
         const response = await fetch(`/api/business/${businessId}/public`);
         const business = await response.json();
         setBusinessMenu(business.menu || {});
-        
+
         // Auto-send menu after fetching
         if (!menuSentRef.current) {
           menuSentRef.current = true;
@@ -87,7 +76,7 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
               customerPhone: sessionId,
             }),
           });
-          
+
           const result = await menuResponse.json();
           const menuMessage: Message = {
             id: '2',
@@ -96,7 +85,7 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
             timestamp: new Date(),
             type: 'info'
           };
-          
+
           setMessages(prev => [...prev, menuMessage]);
         }
       } catch (error) {
@@ -112,7 +101,7 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
       try {
         const response = await fetch(`/api/orders/notifications/${sessionId}`);
         const result = await response.json();
-        
+
         if (result.notifications && result.notifications.length > 0) {
           result.notifications.forEach((notification: any) => {
             const systemMessage: Message = {
@@ -196,96 +185,34 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
   };
 
   const handleAddToOrder = (item: string, quantity: number) => {
-    const itemEmojis: Record<string, string> = {
-      coffee: '☕',
-      latte: '☕',
-      cappuccino: '☕',
-      sandwich: '🥪',
-      bagel: '🥯',
-      pastry: '🧁',
-      muffin: '🧁',
-    };
-
-    // Add to floating cart
-    const existingItemIndex = cartItems.findIndex(cartItem => cartItem.name === item);
-    if (existingItemIndex >= 0) {
-      setCartItems(prev => 
-        prev.map((cartItem, index) => 
-          index === existingItemIndex 
-            ? { ...cartItem, quantity: cartItem.quantity + quantity }
-            : cartItem
-        )
-      );
-    } else {
-      setCartItems(prev => [...prev, {
-        name: item,
-        quantity,
-        emoji: itemEmojis[item] || '🍽️'
-      }]);
-    }
+    setCartItems(prev => addToCart(prev, item, quantity));
   };
 
   const handleRemoveFromCart = (itemName: string) => {
-    setCartItems(prev => prev.filter(item => item.name !== itemName));
+    setCartItems(prev => removeFromCart(prev, itemName));
   };
 
   const handleSendCart = async () => {
     if (cartItems.length === 0) return;
-    
-    const orderText = cartItems
-      .map(item => `${item.quantity} ${item.name}`)
-      .join(', ');
-    
-    // Clear cart and input
+
+    const orderText = formatCartOrder(cartItems);
     setCartItems([]);
     setInputText('');
     
-    // Add customer message to chat
-    const customerMessage: Message = {
-      id: Date.now().toString(),
-      text: orderText,
-      sender: 'customer',
-      timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, customerMessage]);
+    setMessages(prev => [...prev, createCustomerMessage(orderText)]);
     
-    // Send to server automatically
     setLoading(true);
     try {
-      const response = await fetch('/api/orders/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          businessId,
-          message: orderText,
-          customerPhone: sessionId,
-        }),
-      });
-
-      const result = await response.json();
-
-      const systemMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: result.response,
-        sender: 'system',
-        timestamp: new Date(),
-        type: result.type || 'info',
+      const result = await sendChatMessage(businessId, orderText, sessionId);
+      const systemMessage = createSystemMessage(result.response, result.type, {
         paymentLink: result.paymentLink,
         orderId: result.orderId,
         total: result.total,
         orderItems: result.orderItems,
-      };
-
+      });
       setMessages(prev => [...prev, systemMessage]);
     } catch (error) {
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: 'Sorry, something went wrong. Please try again.',
-        sender: 'system',
-        timestamp: new Date(),
-        type: 'info',
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev => [...prev, createErrorMessage()]);
     } finally {
       setLoading(false);
     }
@@ -335,7 +262,7 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
                 >
                   {message.sender === 'customer' ? <Person /> : <Restaurant />}
                 </Avatar>
-                
+
                 <Paper
                   elevation={1}
                   sx={{
@@ -352,9 +279,9 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
                     }),
                   }}
                 >
-                  <Typography 
-                    variant="body1" 
-                    sx={{ 
+                  <Typography
+                    variant="body1"
+                    sx={{
                       whiteSpace: 'pre-wrap',
                       fontSize: { xs: '1rem', sm: '1.1rem' },
                       lineHeight: 1.5
@@ -362,16 +289,16 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
                   >
                     {message.text}
                   </Typography>
-                  
+
                   {message.sender === 'system' && message.text.includes('Menu:') && (
                     <Box sx={{ mt: 2, width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
-                      <SwipableMenu 
-                        menu={businessMenu} 
+                      <SwipableMenu
+                        menu={businessMenu}
                         onAddToOrder={handleAddToOrder}
                       />
                     </Box>
                   )}
-                  
+
                   {message.type === 'payment' && message.paymentLink && (
                     <Box sx={{ mt: 2, textAlign: 'center' }}>
                       <Button
@@ -389,7 +316,7 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
                       >
                         💳 Pay ${message.total?.toFixed(2)}
                       </Button>
-                      
+
                       <Box sx={{ mt: 1 }}>
                         <Button
                           variant="outlined"
@@ -406,16 +333,16 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
                                 pastry: '🧁',
                                 muffin: '🧁',
                               };
-                              
+
                               const restoredItems = message.orderItems.map(item => ({
                                 name: item.name,
                                 quantity: item.quantity,
                                 emoji: itemEmojis[item.name] || '🍽️'
                               }));
-                              
+
                               setCartItems(restoredItems);
                             }
-                            
+
                             // Send menu request automatically
                             setLoading(true);
                             try {
@@ -466,9 +393,9 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
                       fontSize: { xs: '0.8rem', sm: '0.85rem' },
                     }}
                   >
-                    {message.timestamp.toLocaleTimeString([], { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
+                    {message.timestamp.toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit'
                     })}
                   </Typography>
                 </Paper>
@@ -504,8 +431,8 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
             variant="contained"
             onClick={handleSendMessage}
             disabled={!inputText.trim() || loading}
-            sx={{ 
-              minWidth: { xs: 56, sm: 64 }, 
+            sx={{
+              minWidth: { xs: 56, sm: 64 },
               height: { xs: 48, sm: 56 },
               '& .MuiSvgIcon-root': {
                 fontSize: { xs: '1.2rem', sm: '1.4rem' }
@@ -515,16 +442,16 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
             <Send />
           </Button>
         </Box>
-        
+
         <Alert severity="info" sx={{ mt: 2, py: 1 }}>
           <Typography variant="body2" sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
-            {cartItems.length > 0 
+            {cartItems.length > 0
               ? `Cart: ${cartItems.length} items - Type message or send cart`
               : 'Try: "2 coffee, 1 sandwich" or "menu" to see options'
             }
           </Typography>
         </Alert>
-        
+
         {cartItems.length > 0 && (
           <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
             <Button
