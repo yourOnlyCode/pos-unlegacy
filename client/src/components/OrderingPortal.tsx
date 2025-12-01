@@ -12,6 +12,7 @@ import {
   Alert,
 } from '@mui/material';
 import { Send, Restaurant, Person } from '@mui/icons-material';
+import SwipableMenu from './SwipableMenu';
 
 interface Message {
   id: string;
@@ -26,6 +27,10 @@ interface OrderingPortalProps {
   businessName: string;
 }
 
+interface BusinessMenu {
+  [key: string]: number;
+}
+
 export default function OrderingPortal({ businessId, businessName }: OrderingPortalProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -38,6 +43,7 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
   ]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [businessMenu, setBusinessMenu] = useState<BusinessMenu>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -47,6 +53,19 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    const fetchMenu = async () => {
+      try {
+        const response = await fetch(`/api/business/${businessId}/public`);
+        const business = await response.json();
+        setBusinessMenu(business.menu || {});
+      } catch (error) {
+        console.error('Failed to fetch menu:', error);
+      }
+    };
+    fetchMenu();
+  }, [businessId]);
 
   const handleSendMessage = async () => {
     if (!inputText.trim() || loading) return;
@@ -105,6 +124,11 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
     }
   };
 
+  const handleAddToOrder = (item: string, quantity: number) => {
+    const orderText = `${quantity} ${item}`;
+    setInputText(orderText);
+  };
+
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
@@ -134,7 +158,8 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
                   display: 'flex',
                   alignItems: 'flex-end',
                   gap: 1,
-                  maxWidth: '70%',
+                  maxWidth: '90%',
+                  width: '100%',
                   flexDirection: message.sender === 'customer' ? 'row-reverse' : 'row',
                 }}
               >
@@ -155,6 +180,9 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
                     bgcolor: message.sender === 'customer' ? 'primary.main' : 'white',
                     color: message.sender === 'customer' ? 'white' : 'text.primary',
                     borderRadius: 2,
+                    width: '100%',
+                    maxWidth: '100%',
+                    overflow: 'hidden',
                     ...(message.type === 'payment' && {
                       border: '2px solid',
                       borderColor: 'success.main',
@@ -171,6 +199,15 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
                   >
                     {message.text}
                   </Typography>
+                  
+                  {message.sender === 'system' && message.text.includes('Menu:') && (
+                    <Box sx={{ mt: 2, width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
+                      <SwipableMenu 
+                        menu={businessMenu} 
+                        onAddToOrder={handleAddToOrder}
+                      />
+                    </Box>
+                  )}
                   <Typography
                     variant="caption"
                     sx={{
