@@ -21,6 +21,9 @@ interface Message {
   sender: 'customer' | 'system';
   timestamp: Date;
   type?: 'order' | 'payment' | 'info';
+  paymentLink?: string;
+  orderId?: string;
+  total?: number;
 }
 
 interface OrderingPortalProps {
@@ -108,6 +111,9 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
         sender: 'system',
         timestamp: new Date(),
         type: result.type || 'info',
+        paymentLink: result.paymentLink,
+        orderId: result.orderId,
+        total: result.total,
       };
 
       setMessages(prev => [...prev, systemMessage]);
@@ -255,6 +261,25 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
                         menu={businessMenu} 
                         onAddToOrder={handleAddToOrder}
                       />
+                    </Box>
+                  )}
+                  
+                  {message.type === 'payment' && message.paymentLink && (
+                    <Box sx={{ mt: 2, textAlign: 'center' }}>
+                      <Button
+                        variant="contained"
+                        color="success"
+                        size="large"
+                        onClick={() => window.open(message.paymentLink, '_blank')}
+                        sx={{
+                          fontSize: { xs: '1rem', sm: '1.1rem' },
+                          py: { xs: 1.5, sm: 2 },
+                          px: { xs: 3, sm: 4 },
+                          fontWeight: 600,
+                        }}
+                      >
+                        💳 Pay ${message.total?.toFixed(2)}
+                      </Button>
                     </Box>
                   )}
                   <Typography

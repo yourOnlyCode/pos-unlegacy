@@ -22,25 +22,16 @@ router.post('/chat', async (req, res) => {
     const tenants = getAllTenants();
     const mockBusiness = tenants.find(t => t.id === businessId);
 
-    let business: {
-      id: string;
-      businessName: string;
-      menu: Record<string, number>;
-      phoneNumber?: string;
-    } | null = null;
-
-    if (mockBusiness) {
-      business = {
-        id: mockBusiness.id,
-        businessName: mockBusiness.businessName,
-        menu: mockBusiness.menu,
-        phoneNumber: mockBusiness.phoneNumber,
-      };
-    }
-
-    if (!business) {
+    if (!mockBusiness) {
       return res.status(404).json({ error: 'Business not found' });
     }
+
+    const business = {
+      id: mockBusiness.id,
+      businessName: mockBusiness.businessName,
+      menu: mockBusiness.menu,
+      phoneNumber: mockBusiness.phoneNumber,
+    };
 
     // Handle menu request
     if (message.toLowerCase().includes('menu')) {
@@ -57,24 +48,21 @@ router.post('/chat', async (req, res) => {
     const existingConversation = webConversations.get(conversationKey);
     
     if (existingConversation) {
-      // Handle conversation step - user is providing name
-      const { parsedOrder } = existingConversation;
-      
-      // Update with the provided name
-      parsedOrder.customerName = message.trim();
-      
-      // Clear conversation
-      webConversations.delete(conversationKey);
-      
-      // Process the complete order
-      return processCompleteOrder(parsedOrder, conversationKey, business.phoneNumber!, business, res);
+      if (existingConversation.stage === 'awaiting_name') {
+        // Handle name collection
+        const { parsedOrder } = existingConversation;
+        parsedOrder.customerName = message.trim();
+        
+        // Clear conversation and process order
+        webConversations.delete(conversationKey);
+        return processCompleteOrder(parsedOrder, conversationKey, business.phoneNumber!, business, res);
+      }
     }
 
-    // Parse the order with tenant's menu (exact SMS logic)
+    // Parse the order with tenant's menu
     const parsedOrder = parseOrder(message, business.menu);
 
     if (!parsedOrder.isValid) {
-      // Send detailed error message with format instructions
       const errorMsg = parsedOrder.errorMessage || 
         "Sorry, I couldn't understand your order. Please text 'menu' for options.";
       return res.json({
@@ -83,9 +71,8 @@ router.post('/chat', async (req, res) => {
       });
     }
 
-    // Check if name is missing (table is optional)
+    // Check if name is missing
     if (!parsedOrder.customerName) {
-      // Start conversation to collect name
       webConversations.set(conversationKey, {
         stage: 'awaiting_name',
         originalMessage: message,
@@ -99,7 +86,7 @@ router.post('/chat', async (req, res) => {
       });
     }
 
-    // Process complete order (exact SMS logic)
+    // Process complete order
     processCompleteOrder(parsedOrder, conversationKey, business.phoneNumber!, business, res);
 
   } catch (error) {
@@ -111,7 +98,7 @@ router.post('/chat', async (req, res) => {
   }
 });
 
-// Process a complete order with all information (copied from SMS)
+// Process a complete order with all information
 function processCompleteOrder(parsedOrder: any, customerPhone: string, businessPhone: string, tenant: any, res: any) {
   // Check inventory for all items
   const inventoryIssues: string[] = [];
@@ -127,12 +114,10 @@ function processCompleteOrder(parsedOrder: any, customerPhone: string, businessP
         inventoryIssues.push(`❌ ${item.name}: Only ${inStock} left (you ordered ${item.quantity})`);
       }
     } else if (inStock <= 5 && inStock > 0) {
-      // Warn if running low
       stockWarnings.push(`⚠️ ${item.name}: Only ${inStock} left in stock`);
     }
   }
 
-  // If any items are out of stock or insufficient, send error message
   if (inventoryIssues.length > 0) {
     let inventoryMsg = "Sorry, we can't fulfill your order:\n\n" + inventoryIssues.join('\n');
     if (stockWarnings.length > 0) {
@@ -172,28 +157,17 @@ function processCompleteOrder(parsedOrder: any, customerPhone: string, businessP
     .map((item: any) => `${item.quantity}x ${item.name} ($${(item.price * item.quantity).toFixed(2)})`)
     .join('\n');
 
-  let response;
-  if (!tenant.stripeAccountId) {
-    response = `Sorry, ${tenant.businessName} hasn't completed their payment setup yet. Please try again later or call directly.`;
-  } else {
-    // Add stock warnings to message if any
-    const stockInfo = stockWarnings.length > 0 ? '\n\n' + stockWarnings.join('\n') + '\n' : '';
-    
-    const customerInfo = `👤 ${parsedOrder.customerName} | Table #${parsedOrder.tableNumber || 'N/A'}\n\n`;
-    
-    // Add verification note if fuzzy matching was used
-    const verificationNote = parsedOrder.hasFuzzyMatches 
-      ? `✓ I understood your order as:\n\n${customerInfo}${itemsList}\n\nTotal: $${parsedOrder.total.toFixed(2)}${stockInfo}\n\nIf this looks correct, pay now:\n${paymentLink}\n\n⚠️ Order will only be sent to ${tenant.businessName} after payment is confirmed.`
-      : `Order ready for payment:\n\n${customerInfo}${itemsList}\n\nTotal: $${parsedOrder.total.toFixed(2)}${stockInfo}\n\nPay now:\n${paymentLink}\n\n⚠️ Order will only be sent to ${tenant.businessName} after payment is confirmed.`;
-    
-    response = verificationNote;
-  }
+  const customerInfo = `👤 ${parsedOrder.customerName} | Table #${parsedOrder.tableNumber || 'N/A'}\n\n`;
+  const stockInfo = stockWarnings.length > 0 ? '\n\n' + stockWarnings.join('\n') + '\n' : '';
+  
+  const response = `Order ready for payment:\n\n${customerInfo}${itemsList}\n\nTotal: $${parsedOrder.total.toFixed(2)}${stockInfo}\n\n⚠️ Order will only be sent to ${tenant.businessName} after payment is confirmed.`;
 
   res.json({
     response,
     type: 'payment',
     orderId: orderId,
     total: parsedOrder.total,
+    paymentLink: paymentLink,
   });
 }
 
