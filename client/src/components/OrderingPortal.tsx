@@ -24,6 +24,7 @@ interface Message {
   paymentLink?: string;
   orderId?: string;
   total?: number;
+  orderItems?: Array<{ name: string; quantity: number; price: number }>;
 }
 
 interface OrderingPortalProps {
@@ -42,6 +43,7 @@ interface CartItem {
 }
 
 export default function OrderingPortal({ businessId, businessName }: OrderingPortalProps) {
+  const [sessionId] = useState(() => `web-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -99,7 +101,7 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
         body: JSON.stringify({
           businessId,
           message: inputText,
-          customerPhone: 'web-customer', // Placeholder for web customers
+          customerPhone: sessionId,
         }),
       });
 
@@ -114,6 +116,7 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
         paymentLink: result.paymentLink,
         orderId: result.orderId,
         total: result.total,
+        orderItems: result.orderItems,
       };
 
       setMessages(prev => [...prev, systemMessage]);
@@ -172,15 +175,66 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
     setCartItems(prev => prev.filter(item => item.name !== itemName));
   };
 
-  const handleSendCart = () => {
+  const handleSendCart = async () => {
     if (cartItems.length === 0) return;
     
     const orderText = cartItems
       .map(item => `${item.quantity} ${item.name}`)
       .join(', ');
     
-    setInputText(orderText);
+    // Clear cart and input
     setCartItems([]);
+    setInputText('');
+    
+    // Add customer message to chat
+    const customerMessage: Message = {
+      id: Date.now().toString(),
+      text: orderText,
+      sender: 'customer',
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, customerMessage]);
+    
+    // Send to server automatically
+    setLoading(true);
+    try {
+      const response = await fetch('/api/orders/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessId,
+          message: orderText,
+          customerPhone: sessionId,
+        }),
+      });
+
+      const result = await response.json();
+
+      const systemMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: result.response,
+        sender: 'system',
+        timestamp: new Date(),
+        type: result.type || 'info',
+        paymentLink: result.paymentLink,
+        orderId: result.orderId,
+        total: result.total,
+        orderItems: result.orderItems,
+      };
+
+      setMessages(prev => [...prev, systemMessage]);
+    } catch (error) {
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: 'Sorry, something went wrong. Please try again.',
+        sender: 'system',
+        timestamp: new Date(),
+        type: 'info',
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -276,10 +330,77 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
                           py: { xs: 1.5, sm: 2 },
                           px: { xs: 3, sm: 4 },
                           fontWeight: 600,
+                          mb: 1,
                         }}
                       >
                         💳 Pay ${message.total?.toFixed(2)}
                       </Button>
+                      
+                      <Box sx={{ mt: 1 }}>
+                        <Button
+                          variant="outlined"
+                          size="medium"
+                          onClick={async () => {
+                            // Restore order items to cart
+                            if (message.orderItems) {
+                              const itemEmojis: Record<string, string> = {
+                                coffee: '☕',
+                                latte: '☕',
+                                cappuccino: '☕',
+                                sandwich: '🥪',
+                                bagel: '🥯',
+                                pastry: '🧁',
+                                muffin: '🧁',
+                              };
+                              
+                              const restoredItems = message.orderItems.map(item => ({
+                                name: item.name,
+                                quantity: item.quantity,
+                                emoji: itemEmojis[item.name] || '🍽️'
+                              }));
+                              
+                              setCartItems(restoredItems);
+                            }
+                            
+                            // Send menu request automatically
+                            setLoading(true);
+                            try {
+                              const response = await fetch('/api/orders/chat', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  businessId,
+                                  message: 'menu',
+                                  customerPhone: sessionId,
+                                }),
+                              });
+
+                              const result = await response.json();
+
+                              const systemMessage: Message = {
+                                id: (Date.now() + 1).toString(),
+                                text: result.response,
+                                sender: 'system',
+                                timestamp: new Date(),
+                                type: result.type || 'info',
+                              };
+
+                              setMessages(prev => [...prev, systemMessage]);
+                            } catch (error) {
+                              console.error('Failed to fetch menu:', error);
+                            } finally {
+                              setLoading(false);
+                            }
+                          }}
+                          sx={{
+                            fontSize: { xs: '0.9rem', sm: '1rem' },
+                            py: { xs: 1, sm: 1.2 },
+                            px: { xs: 2, sm: 3 },
+                          }}
+                        >
+                          🛍️ Add More Items
+                        </Button>
+                      </Box>
                     </Box>
                   )}
                   <Typography

@@ -11,6 +11,7 @@ const webConversations = new Map<string, {
   originalMessage: string;
   parsedOrder: any;
   businessId: string;
+  customerName?: string;
 }>();
 
 // Handle chat-based orders from web portal
@@ -53,8 +54,14 @@ router.post('/chat', async (req, res) => {
         const { parsedOrder } = existingConversation;
         parsedOrder.customerName = message.trim();
         
-        // Clear conversation and process order
-        webConversations.delete(conversationKey);
+        // Store customer name for future orders and clear awaiting stage
+        webConversations.set(conversationKey, {
+          stage: 'active',
+          originalMessage: '',
+          parsedOrder: null,
+          businessId: businessId,
+          customerName: message.trim()
+        });
         return processCompleteOrder(parsedOrder, conversationKey, business.phoneNumber!, business, res);
       }
     }
@@ -71,8 +78,8 @@ router.post('/chat', async (req, res) => {
       });
     }
 
-    // Check if name is missing
-    if (!parsedOrder.customerName) {
+    // Check if name is missing and not already stored in conversation
+    if (!parsedOrder.customerName && !existingConversation?.customerName) {
       webConversations.set(conversationKey, {
         stage: 'awaiting_name',
         originalMessage: message,
@@ -84,6 +91,11 @@ router.post('/chat', async (req, res) => {
         response: "What's your name?",
         type: 'info'
       });
+    }
+    
+    // Use stored customer name if available
+    if (!parsedOrder.customerName && existingConversation?.customerName) {
+      parsedOrder.customerName = existingConversation.customerName;
     }
 
     // Process complete order
@@ -168,6 +180,7 @@ function processCompleteOrder(parsedOrder: any, customerPhone: string, businessP
     orderId: orderId,
     total: parsedOrder.total,
     paymentLink: paymentLink,
+    orderItems: parsedOrder.items,
   });
 }
 
