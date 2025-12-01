@@ -80,6 +80,34 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
     fetchMenu();
   }, [businessId]);
 
+  // Poll for notifications
+  useEffect(() => {
+    const pollNotifications = async () => {
+      try {
+        const response = await fetch(`/api/orders/notifications/${sessionId}`);
+        const result = await response.json();
+        
+        if (result.notifications && result.notifications.length > 0) {
+          result.notifications.forEach((notification: any) => {
+            const systemMessage: Message = {
+              id: notification.id,
+              text: notification.message,
+              sender: 'system',
+              timestamp: new Date(notification.timestamp),
+              type: 'info'
+            };
+            setMessages(prev => [...prev, systemMessage]);
+          });
+        }
+      } catch (error) {
+        // Silently fail - notifications are not critical
+      }
+    };
+
+    const interval = setInterval(pollNotifications, 2000);
+    return () => clearInterval(interval);
+  }, [sessionId]);
+
   const handleSendMessage = async () => {
     if (!inputText.trim() || loading) return;
 

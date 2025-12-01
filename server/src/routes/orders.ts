@@ -14,6 +14,40 @@ const webConversations = new Map<string, {
   customerName?: string;
 }>();
 
+// Store active chat sessions for notifications
+const activeChatSessions = new Map<string, { sessionId: string; lastActivity: Date }>();
+
+// Clear conversation session
+function clearConversationSession(customerPhone: string): void {
+  webConversations.delete(customerPhone);
+  activeChatSessions.delete(customerPhone);
+}
+
+// Send notification to customer chat
+function sendChatNotification(customerPhone: string, message: string): void {
+  const session = activeChatSessions.get(customerPhone);
+  if (session) {
+    // Store notification for polling
+    const notifications = getNotifications(customerPhone);
+    notifications.push({
+      id: Date.now().toString(),
+      message,
+      timestamp: new Date(),
+      type: 'system'
+    });
+  }
+}
+
+// Notification storage
+const customerNotifications = new Map<string, any[]>();
+
+function getNotifications(customerPhone: string): any[] {
+  if (!customerNotifications.has(customerPhone)) {
+    customerNotifications.set(customerPhone, []);
+  }
+  return customerNotifications.get(customerPhone)!;
+}
+
 // Handle chat-based orders from web portal
 router.post('/chat', async (req, res) => {
   try {
@@ -47,6 +81,12 @@ router.post('/chat', async (req, res) => {
     // Check if customer is in a conversation
     const conversationKey = customerPhone || 'web-customer';
     const existingConversation = webConversations.get(conversationKey);
+    
+    // Track active chat session
+    activeChatSessions.set(conversationKey, {
+      sessionId: conversationKey,
+      lastActivity: new Date()
+    });
     
     if (existingConversation) {
       if (existingConversation.stage === 'awaiting_name') {
@@ -190,7 +230,16 @@ router.put('/:orderId/status', async (req, res) => {
     const { orderId } = req.params;
     const { status } = req.body;
     
+    // Get order before updating to check for session cleanup
+    const order = getOrder(orderId);
     const success = updateOrderStatus(orderId, status);
+    
+    // Send thank you message and clear session when order is paid
+    if (success && status === 'paid' && order?.customerPhone) {
+      sendChatNotification(order.customerPhone, 'Thank you for your order! 🎉 Your payment has been confirmed and your order is being prepared.');
+      // Clear session after a brief delay to allow message delivery
+      setTimeout(() => clearConversationSession(order.customerPhone), 1000);
+    }
     
     if (success) {
       res.json({ success: true });
@@ -200,6 +249,23 @@ router.put('/:orderId/status', async (req, res) => {
   } catch (error) {
     console.error('Update order status error:', error);
     res.status(500).json({ error: 'Failed to update order status' });
+  }
+});
+
+// Get notifications for customer
+router.get('/notifications/:customerPhone', async (req, res) => {
+  try {
+    const { customerPhone } = req.params;
+    const notifications = getNotifications(customerPhone);
+    
+    // Return and clear notifications
+    const result = [...notifications];
+    customerNotifications.set(customerPhone, []);
+    
+    res.json({ notifications: result });
+  } catch (error) {
+    console.error('Get notifications error:', error);
+    res.status(500).json({ error: 'Failed to get notifications' });
   }
 });
 
