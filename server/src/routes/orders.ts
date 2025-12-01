@@ -207,7 +207,14 @@ function processCompleteOrder(parsedOrder: any, customerPhone: string, businessP
 
   // Format order summary
   const itemsList = parsedOrder.items
-    .map((item: any) => `${item.quantity}x ${item.name} ($${(item.price * item.quantity).toFixed(2)})`)
+    .map((item: any) => {
+      let itemText = `${item.quantity}x ${item.name} ($${(item.price * item.quantity).toFixed(2)})`;
+      if (item.modifications && item.modifications.length > 0) {
+        const modText = item.modifications.map((mod: string) => `  • ${mod}`).join('\n');
+        itemText += '\n' + modText;
+      }
+      return itemText;
+    })
     .join('\n');
 
   const customerInfo = `👤 ${parsedOrder.customerName} | Table #${parsedOrder.tableNumber || 'N/A'}\n\n`;
