@@ -38,7 +38,7 @@ function extractTableNumber(text: string): string | undefined {
   return undefined;
 }
 
-function parseExactMatches(text: string, menu: Record<string, number>): Array<{ name: string; quantity: number; price: number; modifications?: string[] }> {
+function parseExactMatches(text: string, menu: Record<string, { price: number; image?: string } | number>): Array<{ name: string; quantity: number; price: number; modifications?: string[] }> {
   const items: Array<{ name: string; quantity: number; price: number; modifications?: string[] }> = [];
   
   // Split by commas to handle individual items with modifications
@@ -64,10 +64,12 @@ function parseExactMatches(text: string, menu: Record<string, number>): Array<{ 
     
     if (foundItem) {
       const modifications = extractModifications(segment, foundItem);
+      const menuItem = menu[foundItem];
+      const price = typeof menuItem === 'number' ? menuItem : menuItem.price;
       items.push({ 
         name: foundItem, 
         quantity, 
-        price: menu[foundItem],
+        price,
         modifications: modifications.length > 0 ? modifications : undefined
       });
     }
@@ -110,7 +112,7 @@ function extractModifications(segment: string, itemName: string): string[] {
   return modifications;
 }
 
-function parseFuzzyMatches(text: string, menu: Record<string, number>): { items: Array<{ name: string; quantity: number; price: number; modifications?: string[] }>; hasFuzzy: boolean } {
+function parseFuzzyMatches(text: string, menu: Record<string, { price: number; image?: string } | number>): { items: Array<{ name: string; quantity: number; price: number; modifications?: string[] }>; hasFuzzy: boolean } {
   const items: Array<{ name: string; quantity: number; price: number; modifications?: string[] }> = [];
   const words = text.split(/[\s,]+/);
   const menuItems = Object.keys(menu);
@@ -153,10 +155,12 @@ function parseFuzzyMatches(text: string, menu: Record<string, number>): { items:
       
       const wordSegment = words.slice(Math.max(0, wordIndex - 3), wordIndex + 2).join(' ');
       const modifications = extractModifications(wordSegment, bestMatch);
+      const menuItem = menu[bestMatch];
+      const price = typeof menuItem === 'number' ? menuItem : menuItem.price;
       items.push({ 
         name: bestMatch, 
         quantity, 
-        price: menu[bestMatch],
+        price,
         modifications: modifications.length > 0 ? modifications : undefined
       });
     }
@@ -165,7 +169,7 @@ function parseFuzzyMatches(text: string, menu: Record<string, number>): { items:
   return { items, hasFuzzy: items.length > 0 };
 }
 
-export function parseOrder(message: string, menu: Record<string, number>): ParsedOrder {
+export function parseOrder(message: string, menu: Record<string, { price: number; image?: string } | number>): ParsedOrder {
   const text = message.toLowerCase().trim();
   const originalText = message.trim();
   

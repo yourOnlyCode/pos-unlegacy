@@ -92,11 +92,12 @@ router.post('/test-login', (req, res) => {
     sub: 'test-admin',
     businessId: target.id,
     email: 'test-admin@demo.local',
+    role: 'admin',
     stripeAccountId: target.stripeAccountId,
     test: true
   } as any;
   const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '2h' });
-  res.json({ token, businessId: target.id, email: payload.email, stripeAccountId: target.stripeAccountId, test: true });
+  res.json({ token, businessId: target.id, email: payload.email, role: 'admin', stripeAccountId: target.stripeAccountId, test: true });
 });
 
 export default router;

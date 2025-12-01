@@ -2,7 +2,7 @@ interface Tenant {
   id: string;
   businessName: string;
   phoneNumber: string;
-  menu: Record<string, number>;
+  menu: Record<string, { price: number; image?: string } | number>;
   inventory: Record<string, number>;
   stripeAccountId?: string;
   settings: {
@@ -35,7 +35,7 @@ tenants.set('+15551234567', {
     'pastry': 3.25,
     'bagel': 3.50,
     'muffin': 2.99
-  },
+  } as Record<string, { price: number; image?: string } | number>,
   inventory: {
     'coffee': 50,
     'latte': 30,
@@ -68,7 +68,7 @@ tenants.set('+15559876543', {
     'wings': 8.50,
     'soda': 2.25,
     'salad': 6.75
-  },
+  } as Record<string, { price: number; image?: string } | number>,
   inventory: {
     'pizza': 20,
     'wings': 5,

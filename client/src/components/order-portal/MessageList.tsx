@@ -5,7 +5,7 @@ import SwipableMenu from '../SwipableMenu';
 
 interface MessageListProps {
   messages: Message[];
-  businessMenu: Record<string, number>;
+  businessMenu: Record<string, { price: number; image?: string } | number>;
   onAddToOrder: (item: string, quantity: number) => void;
   businessId: string;
   sessionId: string;

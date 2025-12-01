@@ -15,7 +15,10 @@ interface OrderingPortalProps {
 }
 
 interface BusinessMenu {
-  [key: string]: number;
+  [key: string]: {
+    price: number;
+    image?: string;
+  } | number; // Support both old format (number) and new format (object)
 }
 
 export default function OrderingPortal({ businessId, businessName }: OrderingPortalProps) {

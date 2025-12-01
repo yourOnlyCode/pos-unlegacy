@@ -26,9 +26,9 @@ router.get('/tenants/:phone', (req, res) => {
 router.post('/tenants', async (req, res) => {
   try {
     const { id, businessName, menu, settings, email, adminPassword, operationsPassword } = req.body;
-    
+
     console.log('Creating tenant with data:', { id, businessName, email, menuItemCount: Object.keys(menu || {}).length });
-    
+
     if (!id || !businessName || !email || !adminPassword || !operationsPassword) {
       console.error('Missing required fields:', { id: !!id, businessName: !!businessName, email: !!email, adminPassword: !!adminPassword, operationsPassword: !!operationsPassword });
       return res.status(400).json({ error: 'Missing required fields (id, businessName, email, adminPassword, operationsPassword)' });
@@ -61,19 +61,19 @@ router.post('/tenants', async (req, res) => {
 
     addTenant(tenant);
     console.log('Tenant added successfully:', id);
-    
+
     // Auto-create admin and operations user accounts
     const { createUser } = require('../services/userService');
     try {
       await createUser(id, email, adminPassword, 'admin');
       console.log('Admin account created for:', email);
-      
+
       await createUser(id, `ops-${email}`, operationsPassword, 'operations');
       console.log('Operations account created for:', `ops-${email}`);
     } catch (error) {
       console.error('Failed to create user accounts:', error);
     }
-    
+
     // Return tenant info with next step for Stripe Connect
     res.status(201).json({
       phoneNumber: null, // No phone number assigned
@@ -113,14 +113,14 @@ router.get('/costs', (req, res) => {
 router.delete('/tenants/:businessId', async (req, res) => {
   const { businessId } = req.params;
   const phoneNumber = getNumberByBusiness(businessId);
-  
+
   if (!phoneNumber) {
     return res.status(404).json({ error: 'Business not found' });
   }
-  
+
   const released = await releasePhoneNumber(businessId);
   if (released) {
-    res.json({ 
+    res.json({
       message: 'Business cancelled and phone number released',
       phoneNumber,
       monthlySavings: '$1.00'
@@ -136,7 +136,7 @@ router.put('/tenants/:phone', (req, res) => {
   if (!success) {
     return res.status(404).json({ error: 'Tenant not found' });
   }
-  
+
   const updatedTenant = getTenantByPhone(req.params.phone);
   res.json(updatedTenant);
 });
@@ -147,21 +147,21 @@ import { getAllOrders } from '../services/orderService';
 router.get('/business/:businessId/orders', requireAuth, requireBusinessMatch, (req, res) => {
   try {
     const { businessId } = req.params;
-    
+
     const allTenants = getAllTenants();
     const business = allTenants.find(t => t.id === businessId);
-    
+
     if (!business) {
       return res.status(404).json({ error: 'Business not found' });
     }
-    
+
     const phoneNumber = business.phoneNumber;
     const allOrders = getAllOrders();
-    
-    const businessOrders = allOrders.filter((order: any) => 
+
+    const businessOrders = allOrders.filter((order: any) =>
       order.businessPhone === phoneNumber
     );
-    
+
     res.json({
       businessId,
       phoneNumber,
@@ -181,20 +181,20 @@ router.get('/business/:businessId/orders', requireAuth, requireBusinessMatch, (r
 router.put('/business/:businessId/menu', requireAuth, requireBusinessMatch, (req, res) => {
   const { businessId } = req.params;
   const { menu } = req.body;
-  
+
   // Find business by ID in tenants
   const allTenants = getAllTenants();
   const business = allTenants.find(t => t.id === businessId);
-  
+
   if (!business) {
     return res.status(404).json({ error: 'Business not found' });
   }
-  
+
   const success = updateTenant(business.phoneNumber, { menu });
   if (!success) {
     return res.status(500).json({ error: 'Failed to update menu' });
   }
-  
+
   res.json({ success: true, menu });
 });
 
@@ -202,14 +202,14 @@ router.put('/business/:businessId/menu', requireAuth, requireBusinessMatch, (req
 router.get('/business/:businessId/settings', requireAuth, requireBusinessMatch, (req, res) => {
   try {
     const { businessId } = req.params;
-    
+
     const allTenants = getAllTenants();
     const business = allTenants.find(t => t.id === businessId);
-    
+
     if (!business) {
       return res.status(404).json({ error: 'Business not found' });
     }
-    
+
     res.json({
       businessId,
       settings: business.settings
@@ -225,33 +225,38 @@ router.put('/business/:businessId/settings', requireAuth, requireBusinessMatch, 
   try {
     const { businessId } = req.params;
     const { settings } = req.body;
-    
+
     const allTenants = getAllTenants();
     const business = allTenants.find(t => t.id === businessId);
-    
+
     if (!business) {
       return res.status(404).json({ error: 'Business not found' });
     }
-    
+
     // Merge settings
     const updatedSettings = {
       ...business.settings,
       ...settings
     };
-    
+
     const success = updateTenant(business.phoneNumber, { settings: updatedSettings });
     if (!success) {
       return res.status(500).json({ error: 'Failed to update settings' });
     }
-    
-    res.json({ 
-      success: true, 
-      settings: updatedSettings 
+
+    res.json({
+      success: true,
+      settings: updatedSettings
     });
   } catch (error) {
     console.error('Error updating settings:', error);
     res.status(500).json({ error: 'Failed to update settings' });
   }
+});
+
+// Upload image for menu items (temporarily disabled)
+router.post('/business/:businessId/upload-image', requireAuth, requireBusinessMatch, (req, res) => {
+  res.status(501).json({ error: 'Image upload temporarily disabled' });
 });
 
 export default router;
