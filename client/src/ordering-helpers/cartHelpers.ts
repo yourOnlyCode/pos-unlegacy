@@ -2,6 +2,7 @@ export interface CartItem {
   name: string;
   quantity: number;
   emoji: string;
+  instructions?: string;
 }
 
 export const itemEmojis: Record<string, string> = {
@@ -17,7 +18,8 @@ export const itemEmojis: Record<string, string> = {
 export const addToCart = (
   cartItems: CartItem[],
   item: string,
-  quantity: number
+  quantity: number,
+  instructions?: string
 ): CartItem[] => {
   const existingItemIndex = cartItems.findIndex(cartItem => cartItem.name === item);
   
@@ -31,7 +33,8 @@ export const addToCart = (
     return [...cartItems, {
       name: item,
       quantity,
-      emoji: itemEmojis[item] || '🍽️'
+      emoji: itemEmojis[item] || '🍽️',
+      instructions
     }];
   }
 };
@@ -42,6 +45,12 @@ export const removeFromCart = (cartItems: CartItem[], itemName: string): CartIte
 
 export const formatCartOrder = (cartItems: CartItem[]): string => {
   return cartItems
-    .map(item => `${item.quantity} ${item.name}`)
+    .map(item => {
+      let text = `${item.quantity} ${item.name}`;
+      if (item.instructions) {
+        text += ` ${item.instructions}`;
+      }
+      return text;
+    })
     .join(', ');
 };

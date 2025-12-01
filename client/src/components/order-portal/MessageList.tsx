@@ -6,7 +6,7 @@ import SwipableMenu from '../SwipableMenu';
 interface MessageListProps {
   messages: Message[];
   businessMenu: Record<string, { price: number; image?: string } | number>;
-  onAddToOrder: (item: string, quantity: number) => void;
+  onAddToOrder: (item: string, quantity: number, instructions?: string) => void;
   businessId: string;
   sessionId: string;
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;

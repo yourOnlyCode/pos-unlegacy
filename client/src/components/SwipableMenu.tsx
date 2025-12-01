@@ -7,12 +7,13 @@ import {
   Chip,
   IconButton,
   Button,
+  TextField,
 } from '@mui/material';
 import { Add, Remove } from '@mui/icons-material';
 
 interface SwipableMenuProps {
   menu: Record<string, { price: number; image?: string } | number>;
-  onAddToOrder: (item: string, quantity: number) => void;
+  onAddToOrder: (item: string, quantity: number, instructions?: string) => void;
   disabled?: boolean;
 }
 
@@ -36,6 +37,7 @@ export default function SwipableMenu({ menu, onAddToOrder, disabled = false }: S
   console.log('SwipableMenu render - disabled:', disabled);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [instructions, setInstructions] = useState<Record<string, string>>({});
 
   const updateQuantity = (item: string, change: number) => {
     const current = quantities[item] || 0;
@@ -45,8 +47,10 @@ export default function SwipableMenu({ menu, onAddToOrder, disabled = false }: S
 
   const addToOrder = (item: string) => {
     const quantity = quantities[item] || 1;
-    onAddToOrder(item, quantity);
+    const itemInstructions = instructions[item]?.trim();
+    onAddToOrder(item, quantity, itemInstructions || undefined);
     setQuantities(prev => ({ ...prev, [item]: 0 }));
+    setInstructions(prev => ({ ...prev, [item]: '' }));
   };
 
   if (selectedCategory) {
@@ -155,6 +159,16 @@ export default function SwipableMenu({ menu, onAddToOrder, disabled = false }: S
                       </IconButton>
                     </Box>
 
+                    <TextField
+                      size="small"
+                      placeholder="Special instructions"
+                      value={instructions[item] || ''}
+                      onChange={(e) => setInstructions(prev => ({ ...prev, [item]: e.target.value }))}
+                      disabled={disabled}
+                      sx={{ mb: 1, fontSize: '0.7rem' }}
+                      inputProps={{ style: { fontSize: '0.7rem', padding: '4px 8px' } }}
+                    />
+                    
                     <Button
                       variant="contained"
                       size="small"

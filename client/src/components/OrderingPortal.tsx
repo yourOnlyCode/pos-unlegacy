@@ -172,8 +172,8 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
     }
   };
 
-  const handleAddToOrder = (item: string, quantity: number) => {
-    setCartItems(prev => addToCart(prev, item, quantity));
+  const handleAddToOrder = (item: string, quantity: number, instructions?: string) => {
+    setCartItems(prev => addToCart(prev, item, quantity, instructions));
   };
 
   const handleRemoveFromCart = (itemName: string) => {
