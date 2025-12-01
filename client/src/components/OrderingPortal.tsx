@@ -177,8 +177,8 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
     setCartItems(prev => addToCart(prev, item, quantity, instructions));
   };
 
-  const handleRemoveFromCart = (itemName: string) => {
-    setCartItems(prev => removeFromCart(prev, itemName));
+  const handleRemoveFromCart = (itemId: string) => {
+    setCartItems(prev => removeFromCart(prev, itemId));
   };
 
   const handleSendCart = async () => {

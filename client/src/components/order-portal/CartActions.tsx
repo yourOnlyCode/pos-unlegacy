@@ -15,7 +15,7 @@ interface CartActionsProps {
   onClearCart: () => void;
   disabled?: boolean;
   cartItems: CartItem[];
-  onRemoveItem: (itemName: string) => void;
+  onRemoveItem: (itemId: string) => void;
   onCartClick: () => void;
 }
 
@@ -40,13 +40,13 @@ export default function CartActions({
 }: CartActionsProps) {
   const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
 
-  const handleRemove = (itemName: string) => {
-    setRemovingItems(prev => new Set(prev).add(itemName));
+  const handleRemove = (itemId: string) => {
+    setRemovingItems(prev => new Set(prev).add(itemId));
     setTimeout(() => {
-      onRemoveItem(itemName);
+      onRemoveItem(itemId);
       setRemovingItems(prev => {
         const newSet = new Set(prev);
-        newSet.delete(itemName);
+        newSet.delete(itemId);
         return newSet;
       });
     }, 200);
@@ -57,8 +57,8 @@ export default function CartActions({
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <Paper elevation={0} sx={{ p: 2, bgcolor: 'white', border: 'none', boxShadow: 'none' }}>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+    <Paper elevation={0} sx={{ p: 0, bgcolor: 'white', border: 'none', boxShadow: 'none' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, py: 2 }}>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'center' }}>
           <Button
             onClick={onSendCart}
@@ -161,9 +161,15 @@ export default function CartActions({
           }}
         >
           {cartItems.map((item, index) => {
-            const isRemoving = removingItems.has(item.name);
+            const isRemoving = removingItems.has(item.id);
             return (
-              <Collapse in={!isRemoving} key={`${item.name}-${index}`} timeout={200} orientation="horizontal">
+              <Collapse 
+                in={!isRemoving} 
+                key={item.id} 
+                timeout={200} 
+                orientation="horizontal"
+                sx={{ flexShrink: 0 }}
+              >
                 <Chip
                   label={
                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 0.25 }}>
@@ -189,10 +195,9 @@ export default function CartActions({
                       )}
                     </Box>
                   }
-                  onDelete={() => handleRemove(item.name)}
+                  onDelete={() => handleRemove(item.id)}
                   deleteIcon={<Close fontSize="small" />}
                   sx={{
-                    flexShrink: 0,
                     background: 'rgba(0, 115, 200, 0.1)',
                     backdropFilter: 'blur(20px) saturate(180%)',
                     WebkitBackdropFilter: 'blur(20px) saturate(180%)',

@@ -11,7 +11,7 @@ interface CartItem {
 
 interface FloatingCartProps {
   items: CartItem[];
-  onRemoveItem: (itemName: string) => void;
+  onRemoveItem: (itemId: string) => void;
   expanded?: boolean;
   onExpandedChange?: (expanded: boolean) => void;
 }
@@ -37,13 +37,13 @@ export default function FloatingCart({ items, onRemoveItem, expanded: externalEx
     setDisplayItems(items);
   }, [items]);
 
-  const handleRemove = (itemName: string) => {
-    setRemovingItems(prev => new Set(prev).add(itemName));
+  const handleRemove = (itemId: string) => {
+    setRemovingItems(prev => new Set(prev).add(itemId));
     setTimeout(() => {
-      onRemoveItem(itemName);
+      onRemoveItem(itemId);
       setRemovingItems(prev => {
         const newSet = new Set(prev);
-        newSet.delete(itemName);
+        newSet.delete(itemId);
         return newSet;
       });
     }, 200);
@@ -101,7 +101,7 @@ export default function FloatingCart({ items, onRemoveItem, expanded: externalEx
             <List sx={{ p: 0 }}>
               {displayItems.map((item, index) => (
                 <ListItem
-                  key={`${item.name}-${index}`}
+                  key={item.id}
                   sx={{
                     flexDirection: 'column',
                     alignItems: 'stretch',
@@ -144,7 +144,7 @@ export default function FloatingCart({ items, onRemoveItem, expanded: externalEx
                     </Box>
                     <IconButton
                       size="small"
-                      onClick={() => handleRemove(item.name)}
+                      onClick={() => handleRemove(item.id)}
                       sx={{
                         color: 'rgba(0, 0, 0, 0.4)',
                         '&:hover': {
