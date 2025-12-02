@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { 
@@ -19,7 +20,7 @@ import { Edit as EditIcon, Check as CheckIcon } from '@mui/icons-material';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
-const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
+const stripeKey = (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY || '';
 const stripePromise = stripeKey && !stripeKey.includes('YOUR_') ? loadStripe(stripeKey) : null;
 
 interface Order {
