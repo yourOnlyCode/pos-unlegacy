@@ -1,16 +1,24 @@
 {
   "version": 2,
-  "buildCommand": "cd client && npm install && npm run build",
+  "buildCommand": "npm install && cd client && npm install && npm run build && cd ../server && npm install && npx prisma generate",
   "outputDirectory": "client/dist",
   "functions": {
-    "server/api/*.ts": {
-      "runtime": "nodejs18.x"
+    "server/api/index.ts": {
+      "runtime": "nodejs18.x",
+      "maxDuration": 10
     }
   },
   "rewrites": [
     {
       "source": "/api/(.*)",
       "destination": "/server/api/index.ts"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/client/dist/$1"
     }
-  ]
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
 }
