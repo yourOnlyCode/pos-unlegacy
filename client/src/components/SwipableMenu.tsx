@@ -217,8 +217,10 @@ export default function SwipableMenu({ menu, onAddToOrder, disabled = false }: S
                             }}
                             onError={(e) => {
                               // Fallback to emoji if image fails to load
-                              e.currentTarget.style.display = 'none';
-                              e.currentTarget.nextElementSibling!.style.display = 'block';
+                              const target = e.currentTarget as HTMLImageElement;
+                              target.style.display = 'none';
+                              const nextSibling = target.nextElementSibling as HTMLElement;
+                              if (nextSibling) nextSibling.style.display = 'block';
                             }}
                           />
                           <Typography variant="h5" sx={{ display: 'none' }}>
