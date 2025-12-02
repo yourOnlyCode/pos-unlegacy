@@ -4,7 +4,6 @@
   "outputDirectory": "client/dist",
   "functions": {
     "server/api/index.ts": {
-      "runtime": "nodejs18.x",
       "maxDuration": 10
     }
   },
