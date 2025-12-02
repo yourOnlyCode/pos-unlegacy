@@ -216,7 +216,9 @@ router.post('/webhook', (req, res) => {
 
 // Get order details for payment page
 router.get('/order/:id', (req, res) => {
+  console.log(`[GET /order/:id] Looking for order: ${req.params.id}`);
   const order = getOrder(req.params.id);
+  console.log(`[GET /order/:id] Order found:`, order ? 'YES' : 'NO');
   if (!order) {
     return res.status(404).json({ error: 'Order not found' });
   }

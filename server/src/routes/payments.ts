@@ -18,7 +18,7 @@ router.post('/create-payment-intent', async (req, res) => {
     const { amount, currency = 'usd', orderId, businessPhone, customerPhone, orderDetails, stripeAccountId, customerName, tableNumber } = req.body;
 
     if (!stripeAccountId) {
-      return res.status(400).json({ error: 'Business Stripe account not connected' });
+      return res.status(400).json({ error: 'There was an error with the business payment portal' });
     }
 
     // Calculate platform fee (0.25% of order)
@@ -49,6 +49,7 @@ router.post('/create-payment-intent', async (req, res) => {
       platformFee: platformFeeAmount / 100
     });
   } catch (error) {
+    console.error('Payment intent creation error:', error);
     res.status(400).json({ error: (error as Error).message });
   }
 });

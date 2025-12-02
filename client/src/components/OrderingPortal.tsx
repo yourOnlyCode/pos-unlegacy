@@ -184,7 +184,14 @@ export default function OrderingPortal({ businessId, businessName }: OrderingPor
   const handleSendCart = async () => {
     if (cartItems.length === 0) return;
 
-    const orderText = formatCartOrder(cartItems);
+    // Check if customer name is stored in localStorage
+    const customerName = localStorage.getItem('customerName');
+    
+    // If name exists, append it to the order
+    const orderText = customerName 
+      ? `${customerName}, ${formatCartOrder(cartItems)}`
+      : formatCartOrder(cartItems);
+    
     setCartItems([]);
     setInputText('');
     
