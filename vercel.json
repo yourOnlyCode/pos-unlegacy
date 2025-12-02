@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "installCommand": "npm install --prefix client && npm install --prefix server",
+  "installCommand": "npm install --legacy-peer-deps --prefix client && npm install --legacy-peer-deps --prefix server",
   "buildCommand": "cd client && npm run build && cd ../server && npx prisma generate",
   "outputDirectory": "client/dist",
   "rewrites": [
