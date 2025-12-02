@@ -3,6 +3,7 @@ import { ShoppingCart, Close } from '@mui/icons-material';
 import { useState } from 'react';
 
 interface CartItem {
+  id: string;
   name: string;
   quantity: number;
   emoji: string;

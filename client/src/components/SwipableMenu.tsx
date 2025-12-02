@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -43,6 +43,13 @@ export default function SwipableMenu({ menu, onAddToOrder, disabled = false }: S
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [instructions, setInstructions] = useState<Record<string, string>>({});
   const [infoDialog, setInfoDialog] = useState<{ open: boolean; item: string; description: string }>({ open: false, item: '', description: '' });
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (selectedCategory && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollLeft = 0;
+    }
+  }, [selectedCategory]);
 
   const updateQuantity = (item: string, change: number) => {
     const current = quantities[item] || 0;
@@ -144,15 +151,18 @@ export default function SwipableMenu({ menu, onAddToOrder, disabled = false }: S
               </Button>
             </Box>
 
-            <Box sx={{
-              display: 'flex',
-              gap: 1.5,
-              overflowX: 'auto',
-              pb: 1,
-              width: '100%',
-              '&::-webkit-scrollbar': { height: 6 },
-              '&::-webkit-scrollbar-thumb': { bgcolor: 'grey.300', borderRadius: 3 }
-            }}>
+            <Box 
+              ref={scrollContainerRef}
+              sx={{
+                display: 'flex',
+                gap: 1.5,
+                overflowX: 'auto',
+                pb: 1,
+                width: '100%',
+                '&::-webkit-scrollbar': { height: 6 },
+                '&::-webkit-scrollbar-thumb': { bgcolor: 'grey.300', borderRadius: 3 }
+              }}
+            >
               {categoryItems.map((item) => {
                 const menuItem = menu[item];
                 const price = typeof menuItem === 'number' ? menuItem : menuItem.price;
@@ -164,8 +174,8 @@ export default function SwipableMenu({ menu, onAddToOrder, disabled = false }: S
                     key={item}
                     variant="outlined"
                     sx={{
-                      minWidth: 140,
-                      maxWidth: 140,
+                      flex: 1,
+                      minWidth: 'calc(90% - 8px)',
                       flexShrink: 0,
                       cursor: disabled ? 'not-allowed' : 'pointer',
                       opacity: disabled ? 0.5 : 1,
@@ -317,8 +327,8 @@ export default function SwipableMenu({ menu, onAddToOrder, disabled = false }: S
                 key={key}
                 variant="outlined"
                 sx={{
-                  minWidth: 140,
-                  maxWidth: 140,
+                  flex: 1,
+                  minWidth: 'calc(90% - 8px)',
                   flexShrink: 0,
                   cursor: disabled ? 'not-allowed' : 'pointer',
                   opacity: disabled ? 0.5 : 1,
@@ -327,11 +337,11 @@ export default function SwipableMenu({ menu, onAddToOrder, disabled = false }: S
                 }}
                 onClick={() => !disabled && setSelectedCategory(key)}
               >
-                <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
-                  <Typography variant="h4" sx={{ mb: 0.5 }}>
+                <CardContent sx={{ p: 2.5, textAlign: 'center' }}>
+                  <Typography variant="h4" sx={{ mb: 1 }}>
                     {category.emoji}
                   </Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 600, display: 'block' }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
                     {category.label}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
