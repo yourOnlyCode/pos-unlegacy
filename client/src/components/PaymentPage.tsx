@@ -19,7 +19,8 @@ import { Edit as EditIcon, Check as CheckIcon } from '@mui/icons-material';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
+const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
+const stripePromise = stripeKey && !stripeKey.includes('YOUR_') ? loadStripe(stripeKey) : null;
 
 interface Order {
   id: string;
@@ -245,6 +246,18 @@ export default function PaymentPage() {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">Order not found</Alert>
+      </Box>
+    );
+  }
+
+  if (!stripePromise) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">
+          Stripe is not configured. Please add your Stripe publishable key to the .env file.
+          <br /><br />
+          Get your test key from: <a href="https://dashboard.stripe.com/test/apikeys" target="_blank" rel="noopener noreferrer">Stripe Dashboard</a>
+        </Alert>
       </Box>
     );
   }

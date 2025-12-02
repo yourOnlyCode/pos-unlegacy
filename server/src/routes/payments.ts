@@ -17,36 +17,57 @@ router.post('/create-payment-intent', async (req, res) => {
   try {
     const { amount, currency = 'usd', orderId, businessPhone, customerPhone, orderDetails, stripeAccountId, customerName, tableNumber } = req.body;
 
-    if (!stripeAccountId) {
-      return res.status(400).json({ error: 'There was an error with the business payment portal' });
-    }
-
-    // Calculate platform fee (0.25% of order)
-    const platformFeeAmount = Math.round(amount * 0.0025 * 100); // 0.25%
-
     const stripe = getStripe();
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Convert to cents
-      currency,
-      payment_method_types: ['card'],
-      application_fee_amount: platformFeeAmount,
-      transfer_data: {
-        destination: stripeAccountId,
-      },
-      metadata: {
-        orderId: orderId || 'unknown',
-        businessPhone: businessPhone || '',
-        customerPhone: customerPhone || '',
-        orderDetails: orderDetails || '',
-        customerName: customerName || '',
-        tableNumber: tableNumber || ''
-      }
-    });
+    
+    // For testing: if stripeAccountId is fake/test, create direct payment
+    // In production with real Stripe Connect accounts, use Connect payment
+    const isTestAccount = !stripeAccountId || stripeAccountId.includes('test') || stripeAccountId.includes('placeholder');
+    
+    let paymentIntent;
+    
+    if (isTestAccount) {
+      // Direct payment (for testing without Stripe Connect)
+      console.log('[Payments] Creating direct payment intent (no Connect)');
+      paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert to cents
+        currency,
+        payment_method_types: ['card'],
+        metadata: {
+          orderId: orderId || 'unknown',
+          businessPhone: businessPhone || '',
+          customerPhone: customerPhone || '',
+          orderDetails: orderDetails || '',
+          customerName: customerName || '',
+          tableNumber: tableNumber || ''
+        }
+      });
+    } else {
+      // Stripe Connect payment (production)
+      console.log('[Payments] Creating Stripe Connect payment');
+      const platformFeeAmount = Math.round(amount * 0.0025 * 100); // 0.25%
+      paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100),
+        currency,
+        payment_method_types: ['card'],
+        application_fee_amount: platformFeeAmount,
+        transfer_data: {
+          destination: stripeAccountId,
+        },
+        metadata: {
+          orderId: orderId || 'unknown',
+          businessPhone: businessPhone || '',
+          customerPhone: customerPhone || '',
+          orderDetails: orderDetails || '',
+          customerName: customerName || '',
+          tableNumber: tableNumber || ''
+        }
+      });
+    }
 
     res.json({
       clientSecret: paymentIntent.client_secret,
       id: paymentIntent.id,
-      platformFee: platformFeeAmount / 100
+      platformFee: isTestAccount ? 0 : Math.round(amount * 0.0025 * 100) / 100
     });
   } catch (error) {
     console.error('Payment intent creation error:', error);
