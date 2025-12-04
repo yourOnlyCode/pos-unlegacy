@@ -1,4 +1,6 @@
-interface Tenant {
+import { prisma } from '../lib/prisma';
+
+export interface Tenant {
   id: string;
   businessName: string;
   phoneNumber: string;
@@ -9,7 +11,7 @@ interface Tenant {
     currency: string;
     timezone: string;
     autoReply: boolean;
-    checkInTimerMinutes?: number; // Minutes after payment to send check-in SMS
+    checkInTimerMinutes?: number;
     checkInEnabled?: boolean;
   };
   posIntegration?: {
@@ -21,96 +23,121 @@ interface Tenant {
   };
 }
 
-const tenants = new Map<string, Tenant>();
-
-tenants.set('+15551234567', {
-  id: 'cafe-downtown',
-  businessName: 'Downtown Cafe',
-  phoneNumber: '+15551234567',
-  menu: {
-    'coffee': 4.50,
-    'latte': 5.25,
-    'cappuccino': 4.75,
-    'sandwich': 8.99,
-    'pastry': 3.25,
-    'bagel': 3.50,
-    'muffin': 2.99
-  } as Record<string, { price: number; image?: string } | number>,
-  inventory: {
-    'coffee': 50,
-    'latte': 30,
-    'cappuccino': 25,
-    'sandwich': 15,
-    'pastry': 20,
-    'bagel': 10,
-    'muffin': 12
-  },
-  stripeAccountId: 'acct_test123',
-  settings: {
-    currency: 'USD',
-    timezone: 'America/New_York',
-    autoReply: true,
-    checkInEnabled: true,
-    checkInTimerMinutes: 15
-  },
-  posIntegration: {
-    provider: 'none',
-    enabled: false
+export async function getTenantByPhone(phoneNumber: string): Promise<Tenant | null> {
+  try {
+    const business = await prisma.business.findUnique({
+      where: { phoneNumber }
+    });
+    
+    if (!business) return null;
+    
+    return {
+      id: business.id,
+      businessName: business.businessName,
+      phoneNumber: business.phoneNumber!,
+      menu: business.menu as any,
+      inventory: business.inventory as any,
+      stripeAccountId: business.stripeAccountId || undefined,
+      settings: business.settings as any,
+      posIntegration: business.posIntegration as any
+    };
+  } catch (error) {
+    console.error(`[tenantService.getTenantByPhone] Error:`, error);
+    return null;
   }
-});
+}
 
-tenants.set('+15559876543', {
-  id: 'pizza-palace',
-  businessName: 'Pizza Palace',
-  phoneNumber: '+15559876543',
-  menu: {
-    'pizza': 12.99,
-    'wings': 8.50,
-    'soda': 2.25,
-    'salad': 6.75
-  } as Record<string, { price: number; image?: string } | number>,
-  inventory: {
-    'pizza': 20,
-    'wings': 5,
-    'soda': 50,
-    'salad': 8
-  },
-  stripeAccountId: 'acct_test456',
-  settings: {
-    currency: 'USD',
-    timezone: 'America/Los_Angeles',
-    autoReply: true,
-    checkInEnabled: true,
-    checkInTimerMinutes: 20
-  },
-  posIntegration: {
-    provider: 'none',
-    enabled: false
+export async function getTenantById(businessId: string): Promise<Tenant | null> {
+  try {
+    const business = await prisma.business.findUnique({
+      where: { id: businessId }
+    });
+    
+    if (!business) return null;
+    
+    return {
+      id: business.id,
+      businessName: business.businessName,
+      phoneNumber: business.phoneNumber || '',
+      menu: business.menu as any,
+      inventory: business.inventory as any,
+      stripeAccountId: business.stripeAccountId || undefined,
+      settings: business.settings as any,
+      posIntegration: business.posIntegration as any
+    };
+  } catch (error) {
+    console.error(`[tenantService.getTenantById] Error:`, error);
+    return null;
   }
-});
-
-export function getTenantByPhone(phoneNumber: string): Tenant | null {
-  return tenants.get(phoneNumber) || null;
 }
 
-export function getAllTenants(): Tenant[] {
-  return Array.from(tenants.values());
+export async function getAllTenants(): Promise<Tenant[]> {
+  try {
+    const businesses = await prisma.business.findMany();
+    
+    return businesses.map(business => ({
+      id: business.id,
+      businessName: business.businessName,
+      phoneNumber: business.phoneNumber || '',
+      menu: business.menu as any,
+      inventory: business.inventory as any,
+      stripeAccountId: business.stripeAccountId || undefined,
+      settings: business.settings as any,
+      posIntegration: business.posIntegration as any
+    }));
+  } catch (error) {
+    console.error(`[tenantService.getAllTenants] Error:`, error);
+    return [];
+  }
 }
 
-export function addTenant(tenant: Tenant): void {
-  tenants.set(tenant.phoneNumber, tenant);
+export async function addTenant(tenant: Tenant): Promise<void> {
+  await prisma.business.create({
+    data: {
+      id: tenant.id,
+      businessName: tenant.businessName,
+      email: '', // Will be updated later through auth
+      passwordHash: '', // Will be updated later through auth
+      phoneNumber: tenant.phoneNumber,
+      stripeAccountId: tenant.stripeAccountId,
+      menu: tenant.menu as any,
+      inventory: tenant.inventory as any,
+      settings: tenant.settings as any,
+      posIntegration: tenant.posIntegration as any
+    }
+  });
 }
 
-export function updateTenant(phoneNumber: string, updates: Partial<Tenant>): boolean {
-  const tenant = tenants.get(phoneNumber);
-  if (!tenant) return false;
-  
-  tenants.set(phoneNumber, { ...tenant, ...updates });
-  return true;
+export async function updateTenant(phoneNumber: string, updates: Partial<Tenant>): Promise<boolean> {
+  try {
+    const business = await prisma.business.findUnique({
+      where: { phoneNumber }
+    });
+    
+    if (!business) return false;
+    
+    await prisma.business.update({
+      where: { phoneNumber },
+      data: {
+        ...(updates.businessName && { businessName: updates.businessName }),
+        ...(updates.phoneNumber && { phoneNumber: updates.phoneNumber }),
+        ...(updates.stripeAccountId && { stripeAccountId: updates.stripeAccountId }),
+        ...(updates.menu && { menu: updates.menu as any }),
+        ...(updates.inventory && { inventory: updates.inventory as any }),
+        ...(updates.settings && { settings: updates.settings as any }),
+        ...(updates.posIntegration && { posIntegration: updates.posIntegration as any })
+      }
+    });
+    
+    return true;
+  } catch (error) {
+    console.error(`[tenantService.updateTenant] Error:`, error);
+    return false;
+  }
 }
 
-export function checkInventory(phoneNumber: string, itemName: string, quantity: number): { available: boolean; inStock: number } {
-  const tenant = tenants.get(phoneNumber);
+export async function checkInventory(phoneNumber: string, itemName: string, quantity: number): Promise<{ available: boolean; inStock: number }> {
+  const tenant = await getTenantByPhone(phoneNumber);
   if (!tenant) return { available: false, inStock: 0 };
   
   const inStock = tenant.inventory[itemName] || 0;

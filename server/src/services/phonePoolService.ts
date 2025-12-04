@@ -1,6 +1,16 @@
 import twilio from 'twilio';
 
-const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+// Only initialize Twilio if credentials are properly configured
+let client: twilio.Twilio | null = null;
+try {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  if (accountSid && authToken && accountSid.startsWith('AC')) {
+    client = twilio(accountSid, authToken);
+  }
+} catch (error) {
+  console.log('⚠️  Twilio initialization failed in phonePoolService:', error);
+}
 
 interface PhoneNumber {
   number: string;
@@ -32,7 +42,9 @@ export async function releasePhoneNumber(businessId: string): Promise<boolean> {
     if (info.businessId === businessId) {
       try {
         // Release the number back to Twilio (stops monthly charges)
-        await client.incomingPhoneNumbers(info.twilioSid).remove();
+        if (client) {
+          await client.incomingPhoneNumbers(info.twilioSid).remove();
+        }
         purchasedNumbers.delete(number);
         console.log(`Released phone number ${number} for ${businessId}`);
         return true;
@@ -81,6 +93,11 @@ function generateMockPhoneNumber(businessId: string): string {
 }
 
 async function purchaseNewNumber(businessId: string): Promise<string | null> {
+  if (!client) {
+    console.log('Twilio not configured, returning mock number');
+    return generateMockPhoneNumber(businessId);
+  }
+  
   try {
     // Search for available numbers
     const numbers = await client.availablePhoneNumbers('US').local.list({
@@ -118,6 +135,8 @@ async function purchaseNewNumber(businessId: string): Promise<string | null> {
 }
 
 async function configureWebhook(phoneNumber: string): Promise<void> {
+  if (!client) return;
+  
   try {
     // Find the Twilio phone number resource
     const numbers = await client.incomingPhoneNumbers.list({

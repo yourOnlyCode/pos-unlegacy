@@ -1,33 +1,70 @@
-const orders = new Map<string, any>();
+import { prisma } from '../lib/prisma';
 
-export function getOrder(orderId: string): any | null {
+export async function getOrder(orderId: string): Promise<any | null> {
   console.log(`[orderService.getOrder] Looking for order: ${orderId}`);
-  console.log(`[orderService.getOrder] Total orders in memory: ${orders.size}`);
-  console.log(`[orderService.getOrder] Order IDs:`, Array.from(orders.keys()));
-  const order = orders.get(orderId);
-  console.log(`[orderService.getOrder] Found:`, order ? 'YES' : 'NO');
-  return order || null;
-}
-
-export function createOrder(orderId: string, orderData: any): void {
-  console.log(`[orderService.createOrder] Creating order: ${orderId}`);
-  orders.set(orderId, orderData);
-  console.log(`[orderService.createOrder] Total orders now: ${orders.size}`);
-}
-
-export function updateOrder(orderId: string, updates: any): boolean {
-  const order = orders.get(orderId);
-  if (!order) return false;
   
-  const updatedOrder = { ...order, ...updates };
-  orders.set(orderId, updatedOrder);
-  
-  // Send SMS notification if order is marked complete
-  if (updates.status === 'complete' && order.status !== 'complete') {
-    notifyOrderComplete(updatedOrder);
+  try {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { business: true }
+    });
+    
+    console.log(`[orderService.getOrder] Found:`, order ? 'YES' : 'NO');
+    return order;
+  } catch (error) {
+    console.error(`[orderService.getOrder] Error:`, error);
+    return null;
   }
+}
+
+export async function createOrder(orderId: string, orderData: any): Promise<void> {
+  console.log(`[orderService.createOrder] Creating order: ${orderId}`);
   
-  return true;
+  await prisma.order.create({
+    data: {
+      id: orderId,
+      businessId: orderData.businessId,
+      customerPhone: orderData.customerPhone,
+      customerName: orderData.customerName,
+      tableNumber: orderData.tableNumber,
+      items: orderData.items,
+      total: orderData.total,
+      status: orderData.status || 'paid',
+      stripePaymentIntentId: orderData.stripePaymentIntentId
+    }
+  });
+  
+  console.log(`[orderService.createOrder] Order created successfully`);
+}
+
+export async function updateOrder(orderId: string, updates: any): Promise<boolean> {
+  try {
+    const existingOrder = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { business: true }
+    });
+    
+    if (!existingOrder) return false;
+    
+    const updatedOrder = await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        ...updates,
+        completedAt: updates.status === 'completed' ? new Date() : existingOrder.completedAt
+      },
+      include: { business: true }
+    });
+    
+    // Send SMS notification if order is marked complete
+    if (updates.status === 'complete' && existingOrder.status !== 'complete') {
+      notifyOrderComplete(updatedOrder);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error(`[orderService.updateOrder] Error:`, error);
+    return false;
+  }
 }
 
 async function notifyOrderComplete(order: any): Promise<void> {
@@ -45,14 +82,31 @@ async function notifyOrderComplete(order: any): Promise<void> {
   }
 }
 
-export function getAllOrders(): any[] {
-  return Array.from(orders.values());
+export async function getAllOrders(): Promise<any[]> {
+  try {
+    const orders = await prisma.order.findMany({
+      include: { business: true },
+      orderBy: { createdAt: 'desc' }
+    });
+    return orders;
+  } catch (error) {
+    console.error(`[orderService.getAllOrders] Error:`, error);
+    return [];
+  }
 }
 
-export function updateOrderStatus(orderId: string, status: string): boolean {
+export async function updateOrderStatus(orderId: string, status: string): Promise<boolean> {
   return updateOrder(orderId, { status });
 }
 
-export function deleteOrder(orderId: string): boolean {
-  return orders.delete(orderId);
+export async function deleteOrder(orderId: string): Promise<boolean> {
+  try {
+    await prisma.order.delete({
+      where: { id: orderId }
+    });
+    return true;
+  } catch (error) {
+    console.error(`[orderService.deleteOrder] Error:`, error);
+    return false;
+  }
 }

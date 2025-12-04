@@ -15,6 +15,9 @@ model Business {
   phoneNumber     String?  @unique
   stripeAccountId String?  @unique
   menu            Json     @default("{}")
+  inventory       Json     @default("{}")
+  settings        Json     @default("{\"currency\":\"USD\",\"timezone\":\"America/New_York\",\"autoReply\":true,\"checkInEnabled\":true,\"checkInTimerMinutes\":15}")
+  posIntegration  Json     @default("{\"provider\":\"none\",\"enabled\":false}")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

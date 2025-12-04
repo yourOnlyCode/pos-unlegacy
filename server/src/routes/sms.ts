@@ -11,10 +11,24 @@ import {
 } from '../services/conversationService';
 
 const router = express.Router();
-const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+
+// Only initialize Twilio if credentials are properly configured
+let client: twilio.Twilio | null = null;
+try {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  if (accountSid && authToken && accountSid.startsWith('AC')) {
+    client = twilio(accountSid, authToken);
+    console.log('✅ Twilio initialized');
+  } else {
+    console.log('⚠️  Twilio not configured - SMS features disabled');
+  }
+} catch (error) {
+  console.log('⚠️  Twilio initialization failed:', error);
+}
 
 // Webhook endpoint for incoming SMS
-router.post('/webhook', (req, res) => {
+router.post('/webhook', async (req, res) => {
   const { Body, From, To } = req.body;
   const customerPhone = From;
   const businessPhone = To;
@@ -23,7 +37,7 @@ router.post('/webhook', (req, res) => {
   console.log(`SMS from ${customerPhone} to ${businessPhone}: ${message}`);
 
   // Find the tenant/business by phone number
-  const tenant = getTenantByPhone(businessPhone);
+  const tenant = await getTenantByPhone(businessPhone);
   if (!tenant) {
     console.error(`No tenant found for phone: ${businessPhone}`);
     return res.status(200).send('OK');
@@ -47,7 +61,7 @@ router.post('/webhook', (req, res) => {
   
   if (existingConversation) {
     // Handle conversation flow
-    handleConversationStep(existingConversation, message, customerPhone, tenant, res);
+    await handleConversationStep(existingConversation, message, customerPhone, tenant, res);
     return;
   }
 
@@ -71,11 +85,11 @@ router.post('/webhook', (req, res) => {
   }
 
   // Process complete order
-  processCompleteOrder(parsedOrder, customerPhone, businessPhone, tenant, res);
+  await processCompleteOrder(parsedOrder, customerPhone, businessPhone, tenant, res);
 });
 
 // Handle multi-step conversation
-function handleConversationStep(conversation: any, message: string, customerPhone: string, tenant: any, res: any) {
+async function handleConversationStep(conversation: any, message: string, customerPhone: string, tenant: any, res: any) {
   if (conversation.stage === 'awaiting_info') {
     // Try to extract both name and table from the response
     const { parsedOrder } = conversation;
@@ -108,7 +122,7 @@ function handleConversationStep(conversation: any, message: string, customerPhon
     conversation.parsedOrder.tableNumber = tableNumber || 'N/A';
     
     // Process the complete order
-    processCompleteOrder(
+    await processCompleteOrder(
       conversation.parsedOrder,
       customerPhone,
       conversation.businessPhone,
@@ -122,13 +136,13 @@ function handleConversationStep(conversation: any, message: string, customerPhon
 }
 
 // Process a complete order with all information
-function processCompleteOrder(parsedOrder: any, customerPhone: string, businessPhone: string, tenant: any, res: any) {
+async function processCompleteOrder(parsedOrder: any, customerPhone: string, businessPhone: string, tenant: any, res: any) {
   // Check inventory for all items
   const inventoryIssues: string[] = [];
   const stockWarnings: string[] = [];
   
   for (const item of parsedOrder.items) {
-    const { available, inStock } = checkInventory(businessPhone, item.name, item.quantity);
+    const { available, inStock } = await checkInventory(businessPhone, item.name, item.quantity);
     
     if (!available) {
       if (inStock === 0) {
@@ -158,7 +172,7 @@ function processCompleteOrder(parsedOrder: any, customerPhone: string, businessP
   const orderId = Date.now().toString();
   
   // Store order as pending payment
-  createOrder(orderId, {
+  await createOrder(orderId, {
     id: orderId,
     customerPhone,
     businessPhone: businessPhone,
@@ -215,9 +229,9 @@ router.post('/webhook', (req, res) => {
 });
 
 // Get order details for payment page
-router.get('/order/:id', (req, res) => {
+router.get('/order/:id', async (req, res) => {
   console.log(`[GET /order/:id] Looking for order: ${req.params.id}`);
-  const order = getOrder(req.params.id);
+  const order = await getOrder(req.params.id);
   console.log(`[GET /order/:id] Order found:`, order ? 'YES' : 'NO');
   if (!order) {
     return res.status(404).json({ error: 'Order not found' });
@@ -227,12 +241,12 @@ router.get('/order/:id', (req, res) => {
 
 // Update order status after payment
 router.post('/order/:id/paid', async (req, res) => {
-  const order = getOrder(req.params.id);
+  const order = await getOrder(req.params.id);
   if (!order) {
     return res.status(404).json({ error: 'Order not found' });
   }
   
-  updateOrder(req.params.id, { status: 'paid' });
+  await updateOrder(req.params.id, { status: 'paid' });
   
   // Forward to POS system if configured
   const { forwardOrderToPOS } = require('../services/posIntegrationService');
@@ -252,6 +266,11 @@ router.post('/order/:id/paid', async (req, res) => {
 });
 
 async function sendSMS(to: string, message: string) {
+  if (!client) {
+    console.log(`⚠️  SMS not sent (Twilio disabled) to ${to}: ${message}`);
+    return;
+  }
+  
   try {
     await client.messages.create({
       body: message,

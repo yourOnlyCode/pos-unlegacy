@@ -8,14 +8,14 @@ import { calculateCosts } from '../services/costTracker';
 const router = express.Router();
 
 // Get all tenants
-router.get('/tenants', (req, res) => {
-  const tenants = getAllTenants();
+router.get('/tenants', async (req, res) => {
+  const tenants = await getAllTenants();
   res.json(tenants);
 });
 
 // Get tenant by phone
-router.get('/tenants/:phone', (req, res) => {
-  const tenant = getTenantByPhone(req.params.phone);
+router.get('/tenants/:phone', async (req, res) => {
+  const tenant = await getTenantByPhone(req.params.phone);
   if (!tenant) {
     return res.status(404).json({ error: 'Tenant not found' });
   }
@@ -59,7 +59,7 @@ router.post('/tenants', async (req, res) => {
       }
     };
 
-    addTenant(tenant);
+    await addTenant(tenant);
     console.log('Tenant added successfully:', id);
 
     // Auto-create admin and operations user accounts
@@ -131,24 +131,24 @@ router.delete('/tenants/:businessId', async (req, res) => {
 });
 
 // Update tenant
-router.put('/tenants/:phone', (req, res) => {
-  const success = updateTenant(req.params.phone, req.body);
+router.put('/tenants/:phone', async (req, res) => {
+  const success = await updateTenant(req.params.phone, req.body);
   if (!success) {
     return res.status(404).json({ error: 'Tenant not found' });
   }
 
-  const updatedTenant = getTenantByPhone(req.params.phone);
+  const updatedTenant = await getTenantByPhone(req.params.phone);
   res.json(updatedTenant);
 });
 
 import { getAllOrders } from '../services/orderService';
 
 // Get orders for a specific business
-router.get('/business/:businessId/orders', requireAuth, requireBusinessMatch, (req, res) => {
+router.get('/business/:businessId/orders', requireAuth, requireBusinessMatch, async (req, res) => {
   try {
     const { businessId } = req.params;
 
-    const allTenants = getAllTenants();
+    const allTenants = await getAllTenants();
     const business = allTenants.find(t => t.id === businessId);
 
     if (!business) {
@@ -156,7 +156,7 @@ router.get('/business/:businessId/orders', requireAuth, requireBusinessMatch, (r
     }
 
     const phoneNumber = business.phoneNumber;
-    const allOrders = getAllOrders();
+    const allOrders = await getAllOrders();
 
     const businessOrders = allOrders.filter((order: any) =>
       order.businessPhone === phoneNumber
@@ -178,19 +178,19 @@ router.get('/business/:businessId/orders', requireAuth, requireBusinessMatch, (r
 });
 
 // Update menu for a business
-router.put('/business/:businessId/menu', requireAuth, requireBusinessMatch, (req, res) => {
+router.put('/business/:businessId/menu', requireAuth, requireBusinessMatch, async (req, res) => {
   const { businessId } = req.params;
   const { menu } = req.body;
 
   // Find business by ID in tenants
-  const allTenants = getAllTenants();
+  const allTenants = await getAllTenants();
   const business = allTenants.find(t => t.id === businessId);
 
   if (!business) {
     return res.status(404).json({ error: 'Business not found' });
   }
 
-  const success = updateTenant(business.phoneNumber, { menu });
+  const success = await updateTenant(business.phoneNumber, { menu });
   if (!success) {
     return res.status(500).json({ error: 'Failed to update menu' });
   }
@@ -199,11 +199,11 @@ router.put('/business/:businessId/menu', requireAuth, requireBusinessMatch, (req
 });
 
 // Get settings for a business
-router.get('/business/:businessId/settings', requireAuth, requireBusinessMatch, (req, res) => {
+router.get('/business/:businessId/settings', requireAuth, requireBusinessMatch, async (req, res) => {
   try {
     const { businessId } = req.params;
 
-    const allTenants = getAllTenants();
+    const allTenants = await getAllTenants();
     const business = allTenants.find(t => t.id === businessId);
 
     if (!business) {
@@ -221,12 +221,12 @@ router.get('/business/:businessId/settings', requireAuth, requireBusinessMatch, 
 });
 
 // Update settings for a business
-router.put('/business/:businessId/settings', requireAuth, requireBusinessMatch, (req, res) => {
+router.put('/business/:businessId/settings', requireAuth, requireBusinessMatch, async (req, res) => {
   try {
     const { businessId } = req.params;
     const { settings } = req.body;
 
-    const allTenants = getAllTenants();
+    const allTenants = await getAllTenants();
     const business = allTenants.find(t => t.id === businessId);
 
     if (!business) {
@@ -239,7 +239,7 @@ router.put('/business/:businessId/settings', requireAuth, requireBusinessMatch, 
       ...settings
     };
 
-    const success = updateTenant(business.phoneNumber, { settings: updatedSettings });
+    const success = await updateTenant(business.phoneNumber, { settings: updatedSettings });
     if (!success) {
       return res.status(500).json({ error: 'Failed to update settings' });
     }

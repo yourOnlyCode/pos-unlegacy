@@ -54,7 +54,7 @@ router.post('/chat', async (req, res) => {
     const { businessId, message, customerPhone } = req.body;
 
     // Get business info - try mock data first
-    const tenants = getAllTenants();
+    const tenants = await getAllTenants();
     const mockBusiness = tenants.find(t => t.id === businessId);
 
     if (!mockBusiness) {
@@ -102,7 +102,7 @@ router.post('/chat', async (req, res) => {
           businessId: businessId,
           customerName: message.trim()
         });
-        return processCompleteOrder(parsedOrder, conversationKey, business.phoneNumber!, business, res);
+        return await processCompleteOrder(parsedOrder, conversationKey, business.phoneNumber!, business, res);
       }
     }
 
@@ -140,7 +140,7 @@ router.post('/chat', async (req, res) => {
     }
 
     // Process complete order
-    processCompleteOrder(parsedOrder, conversationKey, business.phoneNumber!, business, res);
+    await processCompleteOrder(parsedOrder, conversationKey, business.phoneNumber!, business, res);
 
   } catch (error) {
     console.error('Chat order error:', error);
@@ -152,13 +152,13 @@ router.post('/chat', async (req, res) => {
 });
 
 // Process a complete order with all information
-function processCompleteOrder(parsedOrder: any, customerPhone: string, businessPhone: string, tenant: any, res: any) {
+async function processCompleteOrder(parsedOrder: any, customerPhone: string, businessPhone: string, tenant: any, res: any) {
   // Check inventory for all items
   const inventoryIssues: string[] = [];
   const stockWarnings: string[] = [];
   
   for (const item of parsedOrder.items) {
-    const { available, inStock } = checkInventory(businessPhone, item.name, item.quantity);
+    const { available, inStock } = await checkInventory(businessPhone, item.name, item.quantity);
     
     if (!available) {
       if (inStock === 0) {
@@ -188,7 +188,7 @@ function processCompleteOrder(parsedOrder: any, customerPhone: string, businessP
   const orderId = Date.now().toString();
   
   // Store order as pending payment
-  createOrder(orderId, {
+  await createOrder(orderId, {
     id: orderId,
     customerPhone,
     businessPhone: businessPhone,
@@ -240,8 +240,8 @@ router.put('/:orderId/status', async (req, res) => {
     const { status } = req.body;
     
     // Get order before updating to check for session cleanup
-    const order = getOrder(orderId);
-    const success = updateOrderStatus(orderId, status);
+    const order = await getOrder(orderId);
+    const success = await updateOrderStatus(orderId, status);
     
     // Send thank you message and clear session when order is paid
     if (success && status === 'paid' && order?.customerPhone) {

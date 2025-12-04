@@ -13,7 +13,7 @@ router.get('/:businessId/public', async (req, res) => {
     const { businessId } = req.params;
 
     // First try mock data from tenant service
-    const tenants = getAllTenants();
+    const tenants = await getAllTenants();
     const mockBusiness = tenants.find(t => t.id === businessId);
 
     if (mockBusiness) {
@@ -51,7 +51,7 @@ router.get('/:businessId/config', async (req, res) => {
     const { businessId } = req.params;
 
     // Try mock data first
-    const tenants = getAllTenants();
+    const tenants = await getAllTenants();
     const mockBusiness = tenants.find(t => t.id === businessId);
     
     if (mockBusiness) {

@@ -13,7 +13,7 @@ router.get('/business/:businessId/export', async (req, res) => {
     const { format = 'json' } = req.query as { format?: string };
 
     // Get business data
-    const business = getAllTenants().find(t => t.id === businessId);
+    const business = (await getAllTenants()).find(t => t.id === businessId);
 
     if (!business) {
       return res.status(404).json({ error: 'Business not found' });

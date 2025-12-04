@@ -15,7 +15,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'businessId, email, password required' });
     }
     // Validate business exists
-    const tenant = getAllTenants().find(t => t.id === businessId);
+    const tenant = (await getAllTenants()).find(t => t.id === businessId);
     if (!tenant) {
       return res.status(404).json({ error: 'Business not found' });
     }
@@ -51,7 +51,7 @@ router.post('/stripe/register', async (req, res) => {
     if (!businessId || !email || !password) {
       return res.status(400).json({ error: 'businessId, email, password required' });
     }
-    const tenant = getAllTenants().find(t => t.id === businessId);
+    const tenant = (await getAllTenants()).find(t => t.id === businessId);
     if (!tenant) return res.status(404).json({ error: 'Business not found' });
     if (!tenant.stripeAccountId) return res.status(400).json({ error: 'Business not linked to Stripe yet' });
     const user = await createUser(businessId, email, password, 'admin', tenant.stripeAccountId);
@@ -69,7 +69,7 @@ router.post('/stripe/login', async (req, res) => {
     if (!email || !password) return res.status(400).json({ error: 'email and password required' });
     const user = await validateUser(email, password);
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
-    const tenant = getAllTenants().find(t => t.id === user.businessId);
+    const tenant = (await getAllTenants()).find(t => t.id === user.businessId);
     if (!tenant || !tenant.stripeAccountId || tenant.stripeAccountId !== user.stripeAccountId) {
       return res.status(403).json({ error: 'Stripe account mismatch' });
     }
@@ -81,11 +81,11 @@ router.post('/stripe/login', async (req, res) => {
 });
 
 // Test admin login (development only). Issues a token for an existing business without credentials.
-router.post('/test-login', (req, res) => {
+router.post('/test-login', async (req, res) => {
   const allow = process.env.NODE_ENV !== 'production' || process.env.TEST_MODE === 'true';
   if (!allow) return res.status(403).json({ error: 'Test login disabled in production' });
   const { businessId } = req.body;
-  const tenants = getAllTenants();
+  const tenants = await getAllTenants();
   const target = businessId ? tenants.find(t => t.id === businessId) : tenants[0];
   if (!target) return res.status(404).json({ error: 'No tenant available for test login' });
   const payload = {

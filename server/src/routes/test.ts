@@ -16,7 +16,7 @@ import {
 } from '../services/conversationService';
 
 // Test endpoint to simulate sending an SMS order
-router.post('/sms', (req, res) => {
+router.post('/sms', async (req, res) => {
   const { message, customerPhone, businessPhone } = req.body;
 
   if (!message || !customerPhone || !businessPhone) {
@@ -29,7 +29,7 @@ router.post('/sms', (req, res) => {
   console.log(`Message: "${message}"\n`);
 
   // Find the tenant/business by phone number
-  const tenant = getTenantByPhone(businessPhone);
+  const tenant = await getTenantByPhone(businessPhone);
   if (!tenant) {
     const errorMsg = `No business found for phone: ${businessPhone}`;
     return res.json({
@@ -44,7 +44,7 @@ router.post('/sms', (req, res) => {
   
   if (existingConversation) {
     // Handle conversation flow
-    return handleTestConversationStep(existingConversation, message, customerPhone, tenant, res);
+    return await handleTestConversationStep(existingConversation, message, customerPhone, tenant, res);
   }
 
   // Parse the order with tenant's menu
@@ -73,11 +73,11 @@ router.post('/sms', (req, res) => {
   }
 
   // Process complete order
-  return processTestOrder(parsedOrder, customerPhone, businessPhone, tenant, res);
+  return await processTestOrder(parsedOrder, customerPhone, businessPhone, tenant, res);
 });
 
 // Handle multi-step conversation in test mode
-function handleTestConversationStep(conversation: any, message: string, customerPhone: string, tenant: any, res: any) {
+async function handleTestConversationStep(conversation: any, message: string, customerPhone: string, tenant: any, res: any) {
   if (conversation.stage === 'awaiting_info') {
     const { parsedOrder } = conversation;
     let customerName = parsedOrder.customerName;
@@ -115,13 +115,13 @@ function handleTestConversationStep(conversation: any, message: string, customer
 }
 
 // Process a complete test order
-function processTestOrder(parsedOrder: any, customerPhone: string, businessPhone: string, tenant: any, res: any) {
+async function processTestOrder(parsedOrder: any, customerPhone: string, businessPhone: string, tenant: any, res: any) {
   // Check inventory for all items
   const inventoryIssues: string[] = [];
   const stockWarnings: string[] = [];
   
   for (const item of parsedOrder.items) {
-    const { available, inStock } = checkInventory(businessPhone, item.name, item.quantity);
+    const { available, inStock } = await checkInventory(businessPhone, item.name, item.quantity);
     
     if (!available) {
       if (inStock === 0) {
@@ -151,7 +151,7 @@ function processTestOrder(parsedOrder: any, customerPhone: string, businessPhone
 
   // Generate order ID and store order
   const orderId = Date.now().toString();
-  createOrder(orderId, {
+  await createOrder(orderId, {
     id: orderId,
     customerPhone,
     businessPhone,

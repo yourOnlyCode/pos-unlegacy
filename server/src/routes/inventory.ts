@@ -6,9 +6,9 @@ import { syncInventoryFromProvider, InventoryIntegration, IntegrationProvider } 
 const router = express.Router();
 
 // Get integration config for a business
-router.get('/business/:businessId/integration', requireAuth, requireBusinessMatch, (req, res) => {
+router.get('/business/:businessId/integration', requireAuth, requireBusinessMatch, async (req, res) => {
   const { businessId } = req.params;
-  const tenants = getAllTenants();
+  const tenants = await getAllTenants();
   const business = tenants.find(t => t.id === businessId);
   
   if (!business) return res.status(404).json({ error: 'Business not found' });
@@ -36,7 +36,7 @@ router.post('/business/:businessId/integration', requireAuth, requireBusinessMat
   
   if (!provider) return res.status(400).json({ error: 'Provider required' });
   
-  const tenants = getAllTenants();
+  const tenants = await getAllTenants();
   const business = tenants.find(t => t.id === businessId);
   if (!business) return res.status(404).json({ error: 'Business not found' });
   
@@ -52,7 +52,7 @@ router.post('/business/:businessId/integration', requireAuth, requireBusinessMat
     lastSyncedAt: undefined
   };
   
-  updateTenant(business.phoneNumber, { inventoryIntegration: integration } as any);
+  await updateTenant(business.phoneNumber, { inventoryIntegration: integration } as any);
   
   res.json({ success: true, provider, enabled: integration.enabled });
 });
@@ -60,7 +60,7 @@ router.post('/business/:businessId/integration', requireAuth, requireBusinessMat
 // Trigger manual sync
 router.post('/business/:businessId/sync', requireAuth, requireBusinessMatch, async (req, res) => {
   const { businessId } = req.params;
-  const tenants = getAllTenants();
+  const tenants = await getAllTenants();
   const business = tenants.find(t => t.id === businessId);
   
   if (!business) return res.status(404).json({ error: 'Business not found' });
@@ -83,7 +83,7 @@ router.post('/business/:businessId/sync', requireAuth, requireBusinessMatch, asy
       inventory[key] = item.quantity;
     });
     
-    updateTenant(business.phoneNumber, { 
+    await updateTenant(business.phoneNumber, { 
       menu, 
       inventory,
       inventoryIntegration: { ...integration, lastSyncedAt: new Date() }

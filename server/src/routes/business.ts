@@ -4,11 +4,11 @@ import { getAllTenants } from '../services/tenantService';
 const router = Router();
 
 // Get public business info for ordering portal (mock data only)
-router.get('/:businessId/public', (req, res) => {
+router.get('/:businessId/public', async (req, res) => {
   try {
     const { businessId } = req.params;
     
-    const tenants = getAllTenants();
+    const tenants = await getAllTenants();
     const business = tenants.find(t => t.id === businessId);
     
     if (!business) {
