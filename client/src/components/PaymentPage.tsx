@@ -1,4 +1,3 @@
-/// <reference types="vite/client" />
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { 
@@ -19,9 +18,11 @@ import {
 import { Edit as EditIcon, Check as CheckIcon } from '@mui/icons-material';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { config } from '../config/env';
 
-const stripeKey = (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY || '';
-const stripePromise = stripeKey && !stripeKey.includes('YOUR_') ? loadStripe(stripeKey) : null;
+const stripePromise = config.stripePublishableKey && !config.stripePublishableKey.includes('YOUR_') 
+  ? loadStripe(config.stripePublishableKey) 
+  : null;
 
 interface Order {
   id: string;
