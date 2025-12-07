@@ -26,7 +26,7 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <Routes>
+          <Routes>
           <Route path="/" element={<SplashPage />} />
           <Route path="/login" element={<AdminLogin />} />
           <Route path="/register" element={<OnboardingFlow />} />
@@ -46,7 +46,7 @@ function App() {
               </Container>
             } 
           />
-          <Route path="/onboarding" element={<OnboardingFlow />} />
+            <Route path="/onboarding" element={<OnboardingFlow />} />
           <Route 
             path="/connect/success" 
             element={
