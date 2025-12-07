@@ -75,7 +75,7 @@ export async function getAllTenants(): Promise<Tenant[]> {
   try {
     const businesses = await prisma.business.findMany();
     
-    return businesses.map(business => ({
+    return businesses.map((business: any): Tenant => ({
       id: business.id,
       businessName: business.businessName,
       phoneNumber: business.phoneNumber || '',

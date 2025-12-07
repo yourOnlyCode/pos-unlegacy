@@ -7,27 +7,13 @@ export class OrderRoutingService {
   async routeOrder(businessId: string, orderData: any) {
     const business = await prisma.business.findUnique({
       where: { id: businessId },
-      include: { edgeDevice: true },
     });
 
     if (!business) {
       throw new Error('Business not found');
     }
 
-    // Route to edge device if available and active
-    if (
-      business.deploymentType === 'edge' && 
-      business.edgeApiEndpoint && 
-      business.edgeDevice?.status === 'active'
-    ) {
-      try {
-        return await this.sendToEdgeDevice(business.edgeApiEndpoint, orderData);
-      } catch (error) {
-        console.log('Edge device offline, falling back to cloud processing');
-        return this.processCloudOrder(businessId, orderData);
-      }
-    }
-
+    // Edge device routing not yet implemented
     // Default to cloud processing
     return this.processCloudOrder(businessId, orderData);
   }
@@ -90,9 +76,10 @@ export class OrderRoutingService {
     };
   }
 
-  private calculateTotal(items: any[], menu: Record<string, number>): number {
+  private calculateTotal(items: any[], menu: any): number {
     return items.reduce((total, item) => {
-      const price = menu[item.name] || 0;
+      const menuItem = menu[item.name];
+      const price = typeof menuItem === 'number' ? menuItem : menuItem?.price || 0;
       return total + (price * item.quantity);
     }, 0);
   }
@@ -101,9 +88,10 @@ export class OrderRoutingService {
     const business = await prisma.business.findUnique({
       where: { id: businessId },
       select: {
-        deploymentType: true,
-        edgeApiEndpoint: true,
-        edgeDeviceId: true,
+        id: true,
+        businessName: true,
+        menu: true,
+        inventory: true,
       },
     });
 

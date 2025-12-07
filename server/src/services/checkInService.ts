@@ -8,14 +8,14 @@ const checkInTimers = new Map<string, NodeJS.Timeout>();
 // Store pending check-ins (orders awaiting customer confirmation)
 const pendingCheckIns = new Set<string>();
 
-export function scheduleCheckIn(orderId: string): void {
-  const order = getOrder(orderId);
+export async function scheduleCheckIn(orderId: string): Promise<void> {
+  const order = await getOrder(orderId);
   if (!order) {
     console.log(`Cannot schedule check-in: Order ${orderId} not found`);
     return;
   }
 
-  const tenant = getTenantByPhone(order.businessPhone);
+  const tenant = await getTenantByPhone(order.businessPhone);
   if (!tenant) {
     console.log(`Cannot schedule check-in: Tenant not found for ${order.businessPhone}`);
     return;
@@ -43,7 +43,7 @@ export function scheduleCheckIn(orderId: string): void {
 
 async function sendCheckInMessage(orderId: string): Promise<void> {
   try {
-    const order = getOrder(orderId);
+    const order = await getOrder(orderId);
     if (!order) {
       console.log(`Check-in skipped: Order ${orderId} not found`);
       return;
@@ -55,7 +55,7 @@ async function sendCheckInMessage(orderId: string): Promise<void> {
       return;
     }
 
-    const tenant = getTenantByPhone(order.businessPhone);
+    const tenant = await getTenantByPhone(order.businessPhone);
     if (!tenant) {
       console.log(`Check-in skipped: Tenant not found`);
       return;
@@ -74,7 +74,7 @@ async function sendCheckInMessage(orderId: string): Promise<void> {
   }
 }
 
-export function handleCheckInResponse(customerPhone: string, message: string): boolean {
+export async function handleCheckInResponse(customerPhone: string, message: string): Promise<boolean> {
   // Check if this customer has a pending check-in
   if (!pendingCheckIns.has(customerPhone)) {
     return false; // Not a check-in response
@@ -89,7 +89,7 @@ export function handleCheckInResponse(customerPhone: string, message: string): b
   if (isPositive) {
     // Find the most recent paid order for this customer and mark as complete
     const { getAllOrders } = require('./orderService');
-    const orders = getAllOrders();
+    const orders = await getAllOrders();
     
     const customerOrders = orders
       .filter((o: any) => o.customerPhone === customerPhone && (o.status === 'paid' || o.status === 'preparing'))
@@ -97,7 +97,7 @@ export function handleCheckInResponse(customerPhone: string, message: string): b
 
     if (customerOrders.length > 0) {
       const orderToComplete = customerOrders[0];
-      updateOrder(orderToComplete.id, { status: 'complete' });
+      await updateOrder(orderToComplete.id, { status: 'complete' });
       console.log(`Order ${orderToComplete.id} marked as complete via check-in confirmation`);
       
       // Remove from pending check-ins

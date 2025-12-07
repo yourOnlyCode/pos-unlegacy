@@ -4,14 +4,14 @@
  */
 
 import { createContext, useContext, useState, ReactNode, useCallback } from 'react';
-import { CartItem } from '../ordering-helpers/cartHelpers';
 import { Message } from '../ordering-helpers/messageHelpers';
+import { OrderItem } from '../types';
 
 interface OrderContextValue {
   // Cart state
-  cartItems: CartItem[];
-  addToCart: (item: CartItem) => void;
-  removeFromCart: (itemId: string) => void;
+  cartItems: OrderItem[];
+  addToCart: (item: OrderItem) => void;
+  removeFromCart: (index: number) => void;
   clearCart: () => void;
   cartTotal: number;
   
@@ -32,15 +32,15 @@ interface OrderContextValue {
 const OrderContext = createContext<OrderContextValue | undefined>(undefined);
 
 export function OrderProvider({ children }: { children: ReactNode }) {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [cartItems, setCartItems] = useState<OrderItem[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [cartExpanded, setCartExpanded] = useState(false);
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
 
-  const addToCart = useCallback((item: CartItem) => {
+  const addToCart = useCallback((item: OrderItem) => {
     setCartItems(prev => {
       const existingIndex = prev.findIndex(
-        i => i.id === item.id && 
+        i => i.name === item.name && 
         JSON.stringify(i.modifications) === JSON.stringify(item.modifications)
       );
 
@@ -57,8 +57,8 @@ export function OrderProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const removeFromCart = useCallback((itemId: string) => {
-    setCartItems(prev => prev.filter(item => item.id !== itemId));
+  const removeFromCart = useCallback((index: number) => {
+    setCartItems(prev => prev.filter((_, i) => i !== index));
   }, []);
 
   const clearCart = useCallback(() => {
