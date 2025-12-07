@@ -11,6 +11,7 @@ import AdminDashboard from './components/AdminDashboard';
 import OperationsDashboard from './components/OperationsDashboard';
 import OperationsLogin from './components/OperationsLogin';
 import PublicOrderPage from './components/PublicOrderPage';
+import SplashPage from './components/SplashPage';
 
 const theme = createTheme({
   palette: {
@@ -25,19 +26,68 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <Container maxWidth="lg">
-          <Routes>
-            <Route path="/" element={<AdminLogin />} />
-            <Route path="/pos" element={<POSInterface />} />
-            <Route path="/pay/:orderId" element={<PaymentPage />} />
-            <Route path="/onboarding" element={<OnboardingFlow />} />
-            <Route path="/connect/success" element={<ConnectSuccess />} />
-            <Route path="/admin/:businessId" element={<AdminDashboard />} />
-            <Route path="/operations-login" element={<OperationsLogin />} />
-            <Route path="/operations/:businessId" element={<OperationsDashboard />} />
-            <Route path="/order/:businessId" element={<PublicOrderPage />} />
-          </Routes>
-        </Container>
+        <Routes>
+          <Route path="/" element={<SplashPage />} />
+          <Route path="/login" element={<AdminLogin />} />
+          <Route path="/register" element={<OnboardingFlow />} />
+          <Route 
+            path="/pos" 
+            element={
+              <Container maxWidth="lg">
+                <POSInterface />
+              </Container>
+            } 
+          />
+          <Route 
+            path="/pay/:orderId" 
+            element={
+              <Container maxWidth="lg">
+                <PaymentPage />
+              </Container>
+            } 
+          />
+          <Route path="/onboarding" element={<OnboardingFlow />} />
+          <Route 
+            path="/connect/success" 
+            element={
+              <Container maxWidth="lg">
+                <ConnectSuccess />
+              </Container>
+            } 
+          />
+          <Route 
+            path="/admin/:businessId" 
+            element={
+              <Container maxWidth="lg">
+                <AdminDashboard />
+              </Container>
+            } 
+          />
+          <Route 
+            path="/operations-login" 
+            element={
+              <Container maxWidth="lg">
+                <OperationsLogin />
+              </Container>
+            } 
+          />
+          <Route 
+            path="/operations/:businessId" 
+            element={
+              <Container maxWidth="lg">
+                <OperationsDashboard />
+              </Container>
+            } 
+          />
+          <Route 
+            path="/order/:businessId" 
+            element={
+              <Container maxWidth="lg">
+                <PublicOrderPage />
+              </Container>
+            } 
+          />
+        </Routes>
       </Router>
     </ThemeProvider>
   );
