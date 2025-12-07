@@ -30,11 +30,11 @@ export class ApiRouter {
       }
 
       // Default to cloud
-      this.baseUrl = window.location.origin;
+      this.baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
       return this.baseUrl;
     } catch (error) {
       console.error('Failed to get API endpoint, defaulting to cloud:', error);
-      this.baseUrl = window.location.origin;
+      this.baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
       return this.baseUrl;
     }
   }

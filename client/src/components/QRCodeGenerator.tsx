@@ -10,7 +10,9 @@ interface QRCodeGeneratorProps {
 export default function QRCodeGenerator({ businessId, businessName }: QRCodeGeneratorProps) {
   const [showQR, setShowQR] = useState(false);
   
-  const orderingUrl = `${window.location.origin}/order/${businessId}`;
+  const orderingUrl = typeof window !== 'undefined' 
+    ? `${window.location.origin}/order/${businessId}`
+    : `/order/${businessId}`;
 
   const downloadQR = () => {
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(orderingUrl)}`;

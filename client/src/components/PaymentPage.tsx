@@ -54,7 +54,9 @@ function CheckoutForm({ order, onSuccess }: { order: Order; onSuccess: () => voi
     const { error: submitError } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: `${window.location.origin}/pay/${order.id}/success`,
+        return_url: typeof window !== 'undefined' 
+          ? `${window.location.origin}/pay/${order.id}/success`
+          : `/pay/${order.id}/success`,
       },
       redirect: 'if_required',
     });
